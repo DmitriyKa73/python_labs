@@ -16,14 +16,12 @@ file_path = "input.txt"
 def number_to_words(number):
     return ' '.join(digit_to_word[digit] for digit in str(number))
 
-target_count = 1000  # нужное количество чисел
+target_count = 1000  
 
 with open(file_path, "w") as file:
     for _ in range(target_count):
         num = random.randint(1, 9999)
         file.write(str(num) + " ")
-
-# Обработка файла
 
 count_numbers = 0
 max_number = 0
