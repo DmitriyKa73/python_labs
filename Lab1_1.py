@@ -15,31 +15,32 @@ digit_to_word = {
 
 file_path = "input.txt"
 
+
 def number_to_words(number):
     return ' '.join(digit_to_word[digit] for digit in str(number))
 
-target_count = 1000  
-
-
-with open(file_path, "a") as file:
-    for _ in range(target_count):
-        num = random.randint(1, 9999)
-        file.write(str(num) + " ")
 
 count_numbers = 0
 max_number = 0
 
 try:
     with open(file_path, "r") as file:
-        numbers = [int(num) for num in file.read().split()]
+        block_size = 1024  # Размер блока для чтения
+        block = file.read(block_size)
+
+        while block:
+            numbers = [int(num) for num in block.split()]
+
+            for num in numbers:
+                if num > 999:
+                    count_numbers += 1
+                    max_number = max(max_number, num)
+
+            block = file.read(block_size)
+
 except ValueError:
     print("Ошибка: Файл содержит некорректные данные. Очистите файл input.txt.")
     exit()
-
-for num in numbers:
-    if num > 999:
-        count_numbers += 1
-        max_number = max(max_number, num)
 
 print(f"Количество натуральных чисел более 3 цифр: {count_numbers}")
 print(f"Максимальное число: {max_number} ({number_to_words(max_number)})")
