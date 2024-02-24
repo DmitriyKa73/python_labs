@@ -23,8 +23,8 @@ max_number = 0
 
 try:
     with open(file_path, "r") as file:
-        block_size = 1024  # Размер блока для чтения
-        pattern = r'\b\d{1,4}\b'  # Регулярное выражение для поиска чисел от 1 до 9999
+        block_size = 1024 
+        pattern = r'\b\d{1,4}\b'  
 
         block = file.read(block_size)
         while block:
