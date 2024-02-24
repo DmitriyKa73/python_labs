@@ -3,8 +3,6 @@
 #ВАРИАНТ 12. Натуральные числа, содержащие более 3 цифр. Вывести количество таких чисел. Максимальное число вывести прописью.
 import re
 
-file_path = "input.txt"
-
 digit_to_word = {
     '0': 'ноль',
     '1': 'один',
@@ -18,35 +16,27 @@ digit_to_word = {
     '9': 'девять'
 }
 
+file_path = "text.txt"
 
 def number_to_words(number):
     return ' '.join(digit_to_word[digit] for digit in str(number))
 
-
 count_numbers = 0
 max_number = 0
-current_number = ""
 
 try:
     with open(file_path, "r") as file:
         block_size = 1024
-        pattern = r'\b\d+\b' 
+        pattern = r'\b\d{4,}\b'
 
         block = file.read(block_size)
+
         while block:
-            current_number += block
-            matches = re.finditer(pattern, current_number)
+            numbers = [int(match.group()) for match in re.finditer(pattern, block)]
 
-            match = next(matches, None) 
-            while match:
-                num = int(match.group())
-                if num > 999:
-                    count_numbers += 1
-                    max_number = max(max_number, num)
-                match = next(matches, None)  
-
-           
-            current_number = current_number[match.end():] if match else ""
+            for num in numbers:
+                count_numbers += 1
+                max_number = max(max_number, num)
 
             block = file.read(block_size)
 
