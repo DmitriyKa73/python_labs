@@ -13,7 +13,7 @@ digit_to_word = {
     '9': 'девять'
 }
 
-file_path = "input.txt"
+file_path = "text.txt"
 
 def number_to_words(number):
     return ' '.join(digit_to_word[digit] for digit in str(number))
@@ -23,11 +23,12 @@ max_number = 0
 
 try:
     with open(file_path, "r") as file:
-        block_size = 1024  
+        block_size = 1024
         block = file.read(block_size)
 
         while block:
-           numbers = [int(num) for num in block.split() if num.isdigit() and int(num) > 0]
+           
+            numbers = [int(num) for num in block.split() if num.isdigit() and int(num) > 999]
 
             for num in numbers:
                 if num > 999:
