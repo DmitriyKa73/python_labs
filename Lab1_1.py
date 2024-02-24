@@ -25,7 +25,7 @@ max_number = 0
 
 try:
     with open(file_path, "r") as file:
-        block_size = 1024  # Размер блока для чтения
+        block_size = 1024  
         block = file.read(block_size)
 
         while block:
