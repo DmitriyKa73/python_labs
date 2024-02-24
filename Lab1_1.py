@@ -1,7 +1,3 @@
-#ЗАДАНИЕ: Написать программу, которая читая символы из бесконечной последовательности (эмулируется конечным файлом, читающимся поблочно), распознает, преобразует и выводит на экран лексемы по определенному правилу. 
-#Лексемы разделены пробелами. Преобразование делать по возможности через словарь. Для упрощения под выводом числа прописью подразумевается последовательный вывод всех цифр числа. Регулярные выражения использовать нельзя.
-#ВАРИАНТ 12. Натуральные числа, содержащие более 3 цифр. Вывести количество таких чисел. Максимальное число вывести прописью.
-
 import random
 
 digit_to_word = {
@@ -19,10 +15,8 @@ digit_to_word = {
 
 file_path = "input.txt"
 
-
 def number_to_words(number):
     return ' '.join(digit_to_word[digit] for digit in str(number))
-
 
 count_numbers = 0
 max_number = 0
@@ -33,7 +27,7 @@ try:
         block = file.read(block_size)
 
         while block:
-            numbers = [int(num) for num in block.split()]
+           numbers = [int(num) for num in block.split() if num.isdigit() and int(num) > 0]
 
             for num in numbers:
                 if num > 999:
