@@ -1,21 +1,27 @@
-def print_matrix_diagonally(matrix):
-    size = len(matrix)
+def print_matrix_diagonally(size):
+    """
+    Функция для вывода индексов элементов матрицы по диагонали.
+    Принимает размерность матрицы size и печатает индексы для матрицы size * size.
+    """
     for slice in range(2 * size - 1):
         output = []
-        """ 
-        Начинаем с (0, slice) и идем вниз до (slice, 0)
-        """
         for i in range(max(0, slice - size + 1), min(slice + 1, size)):
             j = slice - i
             output.append(f"Индекс: {i},{j}")
         print(" ".join(output))
 
 """
-Создание матрицы 8x8
-""" 
-matrix = [[0 for j in range(8)] for i in range(8)]
+Запрос размера матрицы у пользователя.
+"""
+n = int(input("Введите размерность матрицы n*n: "))
 
-""" 
-Вызов функции для печати индексов элементов матрицы по диагонали
-""" 
-print_matrix_diagonally(matrix)
+"""
+Проверка, что введено положительное число.
+"""
+if n > 0:
+    """
+    Вызов функции для печати индексов элементов матрицы по диагонали.
+    """
+    print_matrix_diagonally(n)
+else:
+    print("Размерность матрицы должна быть положительным числом.")
