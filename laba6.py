@@ -4,87 +4,96 @@
 2 часть – усложнить написанную программу, введя по своему усмотрению в условие минимум одно ограничение на характеристики объектов (которое будет сокращать количество переборов)  и целевую функцию для нахождения оптимального  решения.
 Вариант 12. Вывести все натуральные числа до n, в записи которых встречается ровно одна нечетная цифра на четной позиции.
 """
-import time
 
-def is_valid_number_alg(number):
-    """Проверяет, есть ли в числе ровно одна нечетная цифра на четной позиции."""
-    odd_count = 0
-    position = 1
-    while number > 0:
-        digit = number % 10
-        if position % 2 == 0 and digit % 2 != 0:
-            odd_count += 1
-        if odd_count > 1:
-            return False
-        number //= 10
-        position += 1
-    return odd_count == 1
+import timeit
+import itertools
 
-def find_valid_numbers_alg(n):
-    """Находит все подходящие числа алгоритмическим способом."""
-    return [number for number in range(1, n+1) if is_valid_number_alg(number)]
+# Алгоритмический подход
+def is_valid_alg(number):
+    number_str = str(number)
+    return sum(1 for i, d in enumerate(number_str, start=1) if i % 2 == 0 and int(d) % 2 == 1) == 1
 
-def is_valid_number_func(number):
-    """Проверяет, используя функции Python, наличие одной нечетной цифры на четной позиции."""
-    return sum(1 for i, digit in enumerate(reversed(str(number)), start=1) if i % 2 == 0 and int(digit) % 2 != 0) == 1
+def algorithmic_approach(n):
+    result = []
+    for number in range(n):
+        if is_valid_alg(number):
+            result.append(number)
+    return result
 
-def find_valid_numbers_func(n):
-    """Находит все подходящие числа с использованием функций Python."""
-    return [number for number in range(1, n+1) if is_valid_number_func(number)]
+# Функциональный подход с использованием itertools
+def functional_approach_itertools(n):
+    result = []
+    for digits in itertools.product('0123456789', repeat=len(str(n - 1))):
+        number = int(''.join(digits))
+        if number < n and is_valid_alg(number):
+            result.append(number)
+    return result
 
-def is_prime(number):
-    if number <= 1:
-        return False
-    if number == 2:
-        return True
-    if number % 2 == 0:
-        return False
-    for current in range(3, int(number ** 0.5) + 1, 2):
-        if number % current == 0:
-            return False
-    return True
+# Усложненный алгоритмический подход с дополнительным условием кратности 5
+def complex_algorithmic_approach(n):
+    result = []
+    for number in range(0, n, 5):  # Перебор с шагом 5
+        if is_valid_alg(number):
+            result.append(number)
+    return result
 
-def has_one_odd_digit_on_even_position(number):
-    str_number = str(number)
-    odd_digits = [int(str_number[i]) for i in range(1, len(str_number), 2) if int(str_number[i]) % 2 != 0]
-    return len(odd_digits) == 1
-
-def find_valid_primes(n):
-    valid_primes = []
-    for number in range(1, n + 1):
-        if has_one_odd_digit_on_even_position(number) and is_prime(number):
-            valid_primes.append(number)
-    return valid_primes
-
-# Запрос ввода от пользователя
-n = int(input("Введите число n: "))
-
-# Измерение времени для алгоритмического подхода
-start_time = time.time()
-valid_numbers_alg = find_valid_numbers_alg(n)
-end_time = time.time()
-alg_time = end_time - start_time
-print("ПЕРВАЯ ЧАСТЬ ЗАДАНИЯ")
-print(f"Алгоритмический метод: {valid_numbers_alg}")
-print(f"Затраченное время: {alg_time}")
-
-
-# Измерение времени для функционального подхода
-start_time = time.time()
-valid_numbers_func = find_valid_numbers_func(n)
-end_time = time.time()
-func_time = end_time - start_time
-print(f"Функциональный метод: {valid_numbers_func}")
-print(f"затраченное время: {func_time}")
+# Усложненный функциональный подход с использованием itertools и условием кратности 5
+def complex_functional_approach_itertools(n):
+    result = []
+    for digits in itertools.product('0123456789', repeat=len(str(n - 1))):
+        number = int(''.join(digits))
+        if number < n and number % 5 == 0 and is_valid_alg(number):
+            result.append(number)
+    return result
 
 # Сравнение времени выполнения
-if alg_time < func_time:
-    print(f"Алгоритмический метод быстрее на {func_time - alg_time} секунд.")
-else:
-    print(f"Функциональный метод быстрее на {alg_time - func_time} секунд.")
+n = int(input("Введите число n: "))
 
-# Находим и выводим все простые числа, удовлетворяющие условиям
-valid_primes = find_valid_primes(n)
-print("ВТОРАЯ ЧАСТЬ ЗАДАНИЯ")
-print("Простые числа до n с одной нечетной цифрой на четной позиции:")
-print(valid_primes)
+# Алгоритмический подход
+start_time_alg = timeit.default_timer()
+algorithmic_result = algorithmic_approach(n)
+time_alg = timeit.default_timer() - start_time_alg
+
+# Функциональный подход (itertools)
+start_time_func = timeit.default_timer()
+functional_result_itertools = functional_approach_itertools(n)
+time_func = timeit.default_timer() - start_time_func
+
+# Усложненный алгоритмический подход
+start_time_complex_alg = timeit.default_timer()
+complex_algorithmic_result = complex_algorithmic_approach(n)
+time_complex_alg = timeit.default_timer() - start_time_complex_alg
+
+# Усложненный функциональный подход (itertools)
+start_time_complex_func = timeit.default_timer()
+complex_functional_result_itertools = complex_functional_approach_itertools(n)
+time_complex_func = timeit.default_timer() - start_time_complex_func
+
+# Вывод результатов
+print("Алгоритмический подход:")
+print(algorithmic_result)
+print("Время выполнения: {:.6f} секунд".format(time_alg))
+
+print("\nФункциональный подход (itertools):")
+print(functional_result_itertools)
+print("Время выполнения: {:.6f} секунд".format(time_func))
+
+print("\nУсложненный алгоритмический подход (кратные 5):")
+print(complex_algorithmic_result)
+print("Время выполнения: {:.6f} секунд".format(time_complex_alg))
+
+print("\nУсложненный функциональный подход (itertools, кратные 5):")
+print(complex_functional_result_itertools)
+print("Время выполнения: {:.6f} секунд".format(time_complex_func))
+
+# Сравнение времени выполнения алгоритмического и функционального подходов
+if time_alg < time_func:
+    print("\nАлгоритмический подход быстрее функционального на {:.6f} секунд.".format(time_func - time_alg))
+else:
+    print("\nФункциональный подход (itertools) быстрее алгоритмического на {:.6f} секунд.".format(time_alg - time_func))
+
+# Сравнение времени выполнения усложненных подходов
+if time_complex_alg < time_complex_func:
+    print("Усложненный алгоритмический подход быстрее усложненного функционального на {:.6f} секунд.".format(time_complex_func - time_complex_alg))
+else:
+    print("Усложненный функциональный подход (itertools, кратные 5) быстрее усложненного алгоритмического на {:.6f} секунд.".format(time_complex_alg - time_complex_func))
