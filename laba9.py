@@ -12,7 +12,7 @@ font_small = ("Arial", 18)
 
 current_player = "X"  # Текущий игрок
 board = [""] * 9  # Игровое поле
-play_vs_computer = False
+play_vs_computer = False  
 
 # Проверка на победителя
 def check_winner():
@@ -20,12 +20,10 @@ def check_winner():
                       (0, 3, 6), (1, 4, 7), (2, 5, 8),
                       (0, 4, 8), (2, 4, 6)]
 
-    # Проверка всех возможных комбинаций
     for a, b, c in winning_combos:
         if board[a] == board[b] == board[c] and board[a] != "":
             return board[a]
 
-    # Проверка на ничью
     if "" not in board:
         return "Ничья"
 
@@ -109,8 +107,13 @@ def switch_turn():
 def show_result(winner):
     if winner == "Ничья":
         messagebox.showinfo("Результат", "Игра закончилась в ничью!")
+    elif play_vs_computer:
+        if winner == "X":
+            messagebox.showinfo("Результат", "Вы выиграли!")
+        else:
+            messagebox.showinfo("Результат", "Компьютер выиграл!")
     else:
-        messagebox.showinfo("Результат", f"Победитель: {winner}!")
+        messagebox.showinfo("Результат", f"Выиграл игрок {winner}!")
     reset_game()
 
 # Перезапуск игры
