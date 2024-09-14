@@ -20,7 +20,7 @@ GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
 LIGHT_GRAY = (220, 220, 220)
-SELECTED_BORDER_COLOR = (255, 255, 0)  # Цвет обводки выбранного персонажа
+SELECTED_BORDER_COLOR = (0, 0, 0)  # Цвет обводки выбранного персонажа
 
 # Размеры панели
 PANEL_WIDTH = 250
@@ -84,11 +84,15 @@ class Character:
 
 def create_team(names, color, x_start, y_start, attack_ranges):
     team = []
+    spacing = CELL_SIZE  # Расстояние между персонажами
     for i, (name, attack_range) in enumerate(zip(names, attack_ranges)):
         hp = random.randint(80, 120)
         damage = random.randint(10, 30)
-        team.append(Character(name, color, x_start, y_start + i * CELL_SIZE, hp, damage, attack_range=attack_range))
+        x = x_start
+        y = y_start + i * (CELL_SIZE + spacing)  # Увеличиваем расстояние между персонажами
+        team.append(Character(name, color, x, y, hp, damage, attack_range=attack_range))
     return team
+
 
 
 def check_winner():
@@ -155,8 +159,8 @@ def draw_grid():
 
 
 # Инициализация команд с радиусами атаки
-player_team = create_team(['Воин', 'Маг', 'Лучник'], RED, 100, 100, [2, 4, 3])
-enemy_team = create_team(['Гоблин', 'Огр', 'Тролль'], BLUE, 600, 100, [1, 2, 3])
+player_team = create_team(['Воин', 'Маг', 'Лучник'], BLUE, 100, 100, [2, 4, 3])
+enemy_team = create_team(['Гоблин', 'Огр', 'Тролль'], RED, 600, 100, [1, 2, 3])
 
 # Выбираем первого персонажа игрока по умолчанию
 selected_character = player_team[0]
