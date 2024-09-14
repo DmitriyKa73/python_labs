@@ -65,7 +65,7 @@ class Character:
 
     def is_colliding(self, x, y):
         for other in enemy_team + player_team:
-            if other != self and other.rect.colliderect(pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)):
+            if other != self and other.is_alive() and other.rect.colliderect(pygame.Rect(x, y, CELL_SIZE, CELL_SIZE)):
                 return True
         return False
 
