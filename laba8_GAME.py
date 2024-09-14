@@ -46,8 +46,19 @@ class Character:
 
     def draw(self, screen):
         pygame.draw.rect(screen, self.color, self.rect)
-        pygame.draw.rect(screen, RED, (self.rect.x, self.rect.y - 10, CELL_SIZE, 5))
-        pygame.draw.rect(screen, GREEN, (self.rect.x, self.rect.y - 10, CELL_SIZE * (self.hp / self.max_hp), 5))
+
+        # Расположение индикатора HP по центру
+        hp_bar_width = CELL_SIZE
+        hp_bar_height = 5
+        hp_bar_x = self.rect.x + (CELL_SIZE - hp_bar_width) 
+        hp_bar_y = self.rect.y - hp_bar_height   # Сдвиг выше от персонажа
+
+        # Рисуем фон для индикатора HP
+        pygame.draw.rect(screen, RED, (hp_bar_x, hp_bar_y, hp_bar_width, hp_bar_height))
+
+        # Рисуем индикатор HP
+        pygame.draw.rect(screen, GREEN, (hp_bar_x, hp_bar_y, hp_bar_width * (self.hp / self.max_hp), hp_bar_height))
+
         # Рисуем обводку выбранного персонажа
         if selected_character == self:
             pygame.draw.rect(screen, SELECTED_BORDER_COLOR, self.rect, 3)
