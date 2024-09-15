@@ -295,7 +295,3 @@ def main_game():
 
     # Возврат в главное меню
     return_to_main_menu()
-
-
-
-
