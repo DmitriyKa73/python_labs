@@ -50,8 +50,8 @@ class Character:
         # Расположение индикатора HP по центру
         hp_bar_width = CELL_SIZE
         hp_bar_height = 5
-        hp_bar_x = self.rect.x + (CELL_SIZE - hp_bar_width) 
-        hp_bar_y = self.rect.y - hp_bar_height   # Сдвиг выше от персонажа
+        hp_bar_x = self.rect.x + (CELL_SIZE - hp_bar_width)
+        hp_bar_y = self.rect.y
 
         # Рисуем фон для индикатора HP
         pygame.draw.rect(screen, RED, (hp_bar_x, hp_bar_y, hp_bar_width, hp_bar_height))
@@ -68,11 +68,14 @@ class Character:
             # Перемещаемся строго по сетке
             new_x = round(target_x / CELL_SIZE) * CELL_SIZE
             new_y = round(target_y / CELL_SIZE) * CELL_SIZE
-            distance = math.hypot(new_x - self.rect.x, new_y - self.rect.y)
-            if distance <= self.move_range and not self.is_colliding(new_x, new_y):
-                self.rect.x = new_x
-                self.rect.y = new_y
-                self.steps_left -= 1
+
+            # Проверка на границы карты
+            if 0 <= new_x < WIDTH - CELL_SIZE and 0 <= new_y < HEIGHT - CELL_SIZE:
+                distance = math.hypot(new_x - self.rect.x, new_y - self.rect.y)
+                if distance <= self.move_range and not self.is_colliding(new_x, new_y):
+                    self.rect.x = new_x
+                    self.rect.y = new_y
+                    self.steps_left -= 1
 
     def is_colliding(self, x, y):
         for other in enemy_team + player_team:
