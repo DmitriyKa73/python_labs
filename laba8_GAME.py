@@ -165,101 +165,137 @@ def draw_character_info(char, screen):
     screen.blit(steps_text, (PANEL_X + 10, 130))
 
 
+
 def draw_grid():
     for x in range(0, WIDTH, CELL_SIZE):
         pygame.draw.line(screen, GRAY, (x, 0), (x, HEIGHT))
     for y in range(0, HEIGHT, CELL_SIZE):
         pygame.draw.line(screen, GRAY, (0, y), (WIDTH, y))
 
+# Главное меню
+def main_menu():
+    menu_running = True
+    font = pygame.font.SysFont(None, 48)
+    title_text = font.render('PvP Арена', True, BLACK)
 
-# Инициализация команд с радиусами атаки
-player_team = create_team(['Воин', 'Маг', 'Лучник'], BLUE, 100, 100, [2, 4, 3])
-enemy_team = create_team(['Гоблин', 'Огр', 'Тролль'], RED, 600, 100, [1, 2, 3])
+    while menu_running:
+        screen.fill(WHITE)
 
-# Выбираем первого персонажа игрока по умолчанию
-selected_character = player_team[0]
-viewing_enemy = None  # Переменная для отображения информации о враге
+        # Отображаем название игры
+        screen.blit(title_text, (WIDTH // 2 - title_text.get_width() // 2, HEIGHT // 4))
 
-running = True
-clock = pygame.time.Clock()
-player_turn = True  # Пошаговая механика, начинает игрок
+        # Отображаем кнопки
+        pygame.draw.rect(screen, GRAY, (WIDTH // 2 - 100, HEIGHT // 2 - 50, 200, 50))
+        pygame.draw.rect(screen, GRAY, (WIDTH // 2 - 100, HEIGHT // 2 + 20, 200, 50))
+        pygame.draw.rect(screen, GRAY, (WIDTH // 2 - 100, HEIGHT // 2 + 90, 200, 50))
 
-while running:
-    screen.fill(WHITE)
+        start_text = font.render('Начать игру', True, BLACK)
+        instr_text = font.render('Инструкция', True, BLACK)
+        exit_text = font.render('Выход', True, BLACK)
 
-    # Рисуем сетку
-    draw_grid()
+def return_to_main_menu():
+    pygame.quit()  # Завершаем Pygame
+    import main_menu
+    main_menu.main_menu()  # Запускаем главное меню
 
-    # Обработка событий
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+def main_game():
+    global player_team, enemy_team, selected_character, viewing_enemy, player_turn
+
+    # Инициализация команд с радиусами атаки
+    player_team = create_team(['Воин', 'Маг', 'Лучник'], BLUE, 100, 100, [2, 4, 3])
+    enemy_team = create_team(['Гоблин', 'Огр', 'Тролль'], RED, 600, 100, [1, 2, 3])
+
+    # Выбираем первого персонажа игрока по умолчанию
+    selected_character = player_team[0]
+    viewing_enemy = None  # Переменная для отображения информации о враге
+    player_turn = True  # Пошаговая механика, начинает игрок
+
+    running = True
+    clock = pygame.time.Clock()
+
+    while running:
+        screen.fill(WHITE)
+
+        # Рисуем сетку
+        draw_grid()
+
+        # Обработка событий
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+            if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                mouse_pos = pygame.mouse.get_pos()
+                if player_turn:
+                    for char in player_team:
+                        if char.rect.collidepoint(mouse_pos) and char.is_alive():
+                            selected_character = char
+                            viewing_enemy = None  # Сбрасываем просмотр врага
+                            break
+                    for char in enemy_team:
+                        if char.rect.collidepoint(mouse_pos) and char.is_alive():
+                            viewing_enemy = char  # Выбираем врага для просмотра информации
+                            selected_character = None  # Отключаем управление персонажем
+                            break
+
+            if event.type == pygame.KEYDOWN and selected_character and player_turn:
+                if event.key == pygame.K_SPACE:
+                    # Атака выбранного врага
+                    for char in enemy_team:
+                        if char.rect.collidepoint(pygame.mouse.get_pos()) and char.is_alive():
+                            selected_character.attack(char)
+                            selected_character.steps_left = 3  # Сброс шагов после атаки
+                            player_turn = False
+                            ai_move()  # Ход AI после атаки игрока
+                            player_turn = True
+                elif event.key == pygame.K_w:
+                    new_x = selected_character.rect.x
+                    new_y = selected_character.rect.y - CELL_SIZE
+                    selected_character.move(new_x, new_y)
+                elif event.key == pygame.K_s:
+                    new_x = selected_character.rect.x
+                    new_y = selected_character.rect.y + CELL_SIZE
+                    selected_character.move(new_x, new_y)
+                elif event.key == pygame.K_a:
+                    new_x = selected_character.rect.x - CELL_SIZE
+                    new_y = selected_character.rect.y
+                    selected_character.move(new_x, new_y)
+                elif event.key == pygame.K_d:
+                    new_x = selected_character.rect.x + CELL_SIZE
+                    new_y = selected_character.rect.y
+                    selected_character.move(new_x, new_y)
+
+        # Рисуем персонажей
+        for char in player_team + enemy_team:
+            if char.is_alive():
+                char.draw(screen)
+
+        # Отображаем информацию о выбранном персонаже или враге
+        if selected_character:
+            draw_character_info(selected_character, screen)
+        elif viewing_enemy:
+            draw_character_info(viewing_enemy, screen)
+
+        # Проверка победителя
+        winner = check_winner()
+        if winner:
             running = False
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            mouse_pos = pygame.mouse.get_pos()
-            if player_turn:
-                for char in player_team:
-                    if char.rect.collidepoint(mouse_pos) and char.is_alive():
-                        selected_character = char
-                        viewing_enemy = None  # Сбрасываем просмотр врага
-                        break
-                for char in enemy_team:
-                    if char.rect.collidepoint(mouse_pos) and char.is_alive():
-                        viewing_enemy = char  # Выбираем врага для просмотра информации
-                        selected_character = None  # Отключаем управление персонажем
-                        break
+            break
 
-        if event.type == pygame.KEYDOWN and selected_character and player_turn:
-            if event.key == pygame.K_SPACE:
-                # Атака выбранного врага
-                for char in enemy_team:
-                    if char.rect.collidepoint(pygame.mouse.get_pos()) and char.is_alive():
-                        selected_character.attack(char)
-                        selected_character.steps_left = 3  # Сброс шагов после атаки
-                        player_turn = False
-                        ai_move()  # Ход AI после атаки игрока
-                        player_turn = True
-            elif event.key == pygame.K_w:
-                new_x = selected_character.rect.x
-                new_y = selected_character.rect.y - CELL_SIZE
-                selected_character.move(new_x, new_y)
-            elif event.key == pygame.K_s:
-                new_x = selected_character.rect.x
-                new_y = selected_character.rect.y + CELL_SIZE
-                selected_character.move(new_x, new_y)
-            elif event.key == pygame.K_a:
-                new_x = selected_character.rect.x - CELL_SIZE
-                new_y = selected_character.rect.y
-                selected_character.move(new_x, new_y)
-            elif event.key == pygame.K_d:
-                new_x = selected_character.rect.x + CELL_SIZE
-                new_y = selected_character.rect.y
-                selected_character.move(new_x, new_y)
+        pygame.display.flip()
+        clock.tick(30)
 
-    # Рисуем персонажей
-    for char in player_team + enemy_team:
-        if char.is_alive():
-            char.draw(screen)
+    # Окно победителя на tkinter
+    root = tk.Tk()
+    root.withdraw()
+    messagebox.showinfo("Конец игры", winner)
+    root.destroy()
 
-    # Отображаем информацию о выбранном персонаже или враге
-    if selected_character:
-        draw_character_info(selected_character, screen)
-    elif viewing_enemy:
-        draw_character_info(viewing_enemy, screen)
+    # Завершение Pygame и вывод победителя
+    pygame.quit()
 
-    # Проверка победителя
-    winner = check_winner()
-    if winner:
-        running = False
-        break
+    # Возврат в главное меню
+    return_to_main_menu()
 
-    pygame.display.flip()
-    clock.tick(30)
 
-# Завершение Pygame и вывод победителя
-pygame.quit()
 
-# Окно победителя на tkinter
-root = tk.Tk()
-root.withdraw()
-messagebox.showinfo("Конец игры", winner)
-root.destroy()
+
