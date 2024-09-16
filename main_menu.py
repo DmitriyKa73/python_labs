@@ -28,10 +28,10 @@ def show_instructions():
     instructions = [
         "Правила игры PvP Арена:",
         "1. Управляйте персонажами, используя клавиши W, A, S, D для передвижения.",
-        "2. Для атаки врага нажмите SPACE, когда выбрали врага.",
+        "2. Для атаки врага нажмите SPACE, когда навели курсор мыши на врага.",
         "3. Каждый персонаж имеет ограниченное количество шагов и радиус атаки.",
         "4. Уничтожьте всех врагов, чтобы победить.",
-        "5. Персонажи разного типа имеют разные атаки и способности."
+        "5. Персонажи разного типа имеют разные атаки и способности (в будущем)."
     ]
 
     while instruction_running:
@@ -95,7 +95,7 @@ def main_menu():
         pygame.display.flip()
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT: 
+            if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
