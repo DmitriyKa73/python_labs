@@ -4,7 +4,6 @@ from tkinter import messagebox
 import random
 import math
 
-# Инициализация Pygame
 pygame.init()
 
 # Основные настройки игры
@@ -20,7 +19,7 @@ GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
 GRAY = (200, 200, 200)
 LIGHT_GRAY = (220, 220, 220)
-SELECTED_BORDER_COLOR = (0, 0, 0)  # Цвет обводки выбранного персонажа
+SELECTED_BORDER_COLOR = (0, 0, 0)
 
 # Размеры панели
 PANEL_WIDTH = 250
@@ -28,7 +27,6 @@ PANEL_X = WIDTH - PANEL_WIDTH
 
 # Размеры ячейки сетки
 CELL_SIZE = 50
-
 
 # Персонаж
 class Character:
@@ -194,7 +192,6 @@ def main_menu():
         exit_text = font.render('Выход', True, BLACK)
 
 def return_to_main_menu():
-    pygame.quit()  # Завершаем Pygame
     import main_menu
     main_menu.main_menu()  # Запускаем главное меню
 
@@ -289,9 +286,6 @@ def main_game():
     root.withdraw()
     messagebox.showinfo("Конец игры", winner)
     root.destroy()
-
-    # Завершение Pygame и вывод победителя
-    pygame.quit()
 
     # Возврат в главное меню
     return_to_main_menu()
