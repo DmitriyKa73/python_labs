@@ -19,7 +19,7 @@
 
 1. Клонируйте репозиторий или скачайте исходный код:
    ```bash
-   git clone <URL_репозитория>
+   git clone <(https://github.com/DmitriyKa73/python_labs/tree/main/PVP_Arena)>
 2.Установите необходимые зависимости:
 - pip install pygame tkinter
   
