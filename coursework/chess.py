@@ -2,6 +2,7 @@ import pygame
 import sys
 import json
 import os
+import random
 
 # Инициализация Pygame и глобальных переменных
 pygame.init()
@@ -130,44 +131,98 @@ class ChessBoard:
 
     def setup_pieces(self, piece_set, color):
         pieces = {}
+        positions = [(x, y) for x in range(8) for y in range(8)]
+        random.shuffle(positions)
+
+        def get_random_position():
+            while positions:
+                pos = positions.pop()
+                if pos[1] not in [0, 7]:  # Исключаем крайние верхние и нижние клетки для пешек
+                    return pos
+            return None
+
         if piece_set == "king_queen":
             if color == "white":
                 pieces = {
-                    "white_king": Piece("white", "king", (7, 4)),
-                    "white_queen": Piece("white", "queen", (7, 3)),
-                    "black_king": Piece("black", "king", (0, 4)),
-                    "black_rook": Piece("black", "rook", (0, 3)),
-                    "black_pawn_1": Piece("black", "pawn", (1, 2)),
-                    "black_pawn_2": Piece("black", "pawn", (1, 5))
+                    "white_king": Piece("white", "king", positions.pop()),
+                    "white_queen": Piece("white", "queen", positions.pop()),
+                    "black_king": Piece("black", "king", positions.pop()),
+                    "black_rook": Piece("black", "rook", positions.pop()),
+                    "black_pawn_1": Piece("black", "pawn", get_random_position()),
+                    "black_pawn_2": Piece("black", "pawn", get_random_position())
                 }
             else:
                 pieces = {
-                    "black_king": Piece("black", "king", (7, 4)),
-                    "black_queen": Piece("black", "queen", (7, 3)),
-                    "white_king": Piece("white", "king", (0, 4)),
-                    "white_rook": Piece("white", "rook", (0, 3)),
-                    "white_pawn_1": Piece("white", "pawn", (1, 2)),
-                    "white_pawn_2": Piece("white", "pawn", (1, 5))
+                    "black_king": Piece("black", "king", positions.pop()),
+                    "black_queen": Piece("black", "queen", positions.pop()),
+                    "white_king": Piece("white", "king", positions.pop()),
+                    "white_rook": Piece("white", "rook", positions.pop()),
+                    "white_pawn_1": Piece("white", "pawn", get_random_position()),
+                    "white_pawn_2": Piece("white", "pawn", get_random_position())
                 }
         elif piece_set == "king_rook_pawns":
             if color == "white":
                 pieces = {
-                    "white_king": Piece("white", "king", (7, 4)),
-                    "white_rook": Piece("white", "rook", (7, 3)),
-                    "white_pawn_1": Piece("white", "pawn", (6, 2)),
-                    "white_pawn_2": Piece("white", "pawn", (6, 5)),
-                    "black_king": Piece("black", "king", (0, 4)),
-                    "black_queen": Piece("black", "queen", (0, 3))
+                    "white_king": Piece("white", "king", positions.pop()),
+                    "white_rook": Piece("white", "rook", positions.pop()),
+                    "white_pawn_1": Piece("white", "pawn", get_random_position()),
+                    "white_pawn_2": Piece("white", "pawn", get_random_position()),
+                    "black_king": Piece("black", "king", positions.pop()),
+                    "black_queen": Piece("black", "queen", positions.pop())
                 }
             else:
                 pieces = {
-                    "black_king": Piece("black", "king", (7, 4)),
-                    "black_rook": Piece("black", "rook", (7, 3)),
-                    "black_pawn_1": Piece("black", "pawn", (6, 2)),
-                    "black_pawn_2": Piece("black", "pawn", (6, 5)),
-                    "white_king": Piece("white", "king", (0, 4)),
-                    "white_queen": Piece("white", "queen", (0, 3))
+                    "black_king": Piece("black", "king", positions.pop()),
+                    "black_rook": Piece("black", "rook", positions.pop()),
+                    "black_pawn_1": Piece("black", "pawn", get_random_position()),
+                    "black_pawn_2": Piece("black", "pawn", get_random_position()),
+                    "white_king": Piece("white", "king", positions.pop()),
+                    "white_queen": Piece("white", "queen", positions.pop())
                 }
+
+        # Проверяем, чтобы не было шахов и матов
+        while self.is_check("white") or self.is_check("black") or self.is_checkmate("white") or self.is_checkmate("black"):
+            positions = [(x, y) for x in range(8) for y in range(8)]
+            random.shuffle(positions)
+            if piece_set == "king_queen":
+                if color == "white":
+                    pieces = {
+                        "white_king": Piece("white", "king", positions.pop()),
+                        "white_queen": Piece("white", "queen", positions.pop()),
+                        "black_king": Piece("black", "king", positions.pop()),
+                        "black_rook": Piece("black", "rook", positions.pop()),
+                        "black_pawn_1": Piece("black", "pawn", get_random_position()),
+                        "black_pawn_2": Piece("black", "pawn", get_random_position())
+                    }
+                else:
+                    pieces = {
+                        "black_king": Piece("black", "king", positions.pop()),
+                        "black_queen": Piece("black", "queen", positions.pop()),
+                        "white_king": Piece("white", "king", positions.pop()),
+                        "white_rook": Piece("white", "rook", positions.pop()),
+                        "white_pawn_1": Piece("white", "pawn", get_random_position()),
+                        "white_pawn_2": Piece("white", "pawn", get_random_position())
+                    }
+            elif piece_set == "king_rook_pawns":
+                if color == "white":
+                    pieces = {
+                        "white_king": Piece("white", "king", positions.pop()),
+                        "white_rook": Piece("white", "rook", positions.pop()),
+                        "white_pawn_1": Piece("white", "pawn", get_random_position()),
+                        "white_pawn_2": Piece("white", "pawn", get_random_position()),
+                        "black_king": Piece("black", "king", positions.pop()),
+                        "black_queen": Piece("black", "queen", positions.pop())
+                    }
+                else:
+                    pieces = {
+                        "black_king": Piece("black", "king", positions.pop()),
+                        "black_rook": Piece("black", "rook", positions.pop()),
+                        "black_pawn_1": Piece("black", "pawn", get_random_position()),
+                        "black_pawn_2": Piece("black", "pawn", get_random_position()),
+                        "white_king": Piece("white", "king", positions.pop()),
+                        "white_queen": Piece("white", "queen", positions.pop())
+                    }
+
         return pieces
 
     def add_move_to_history(self, piece, start_pos, end_pos, captured=None):
