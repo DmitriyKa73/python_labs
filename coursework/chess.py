@@ -181,7 +181,8 @@ class ChessBoard:
                 }
 
         # Проверяем, чтобы не было шахов и матов
-        while self.is_check("white") or self.is_check("black") or self.is_checkmate("white") or self.is_checkmate("black"):
+        while self.is_check("white") or self.is_check("black") or self.is_checkmate("white") or self.is_checkmate(
+                "black"):
             positions = [(x, y) for x in range(8) for y in range(8)]
             random.shuffle(positions)
             if piece_set == "king_queen":
@@ -790,13 +791,16 @@ class ChessBoard:
                 for button_name, button in self.buttons.items():
                     if button.handle_event(event):
                         if button_name == 'new_game':
+                            self.clear_board()  # Очищаем доску перед началом новой игры
                             self.show_new_game_menu()
                             selected_piece = None
                             global current_turn
                             current_turn = "white"
+
                             self.moves_history = []  # Стираем историю ходов
                             self.current_save = None  # Удаляем текущее сохранение
                             self.captured_pieces = []  # Удаляем съеденные фигуры
+
                         elif button_name == 'save_game':
                             self.save_game()
                         elif button_name == 'load_game':
@@ -821,6 +825,10 @@ class ChessBoard:
                 if event.key == pygame.K_ESCAPE:
                     pygame.quit()
                     sys.exit()
+
+    def clear_board(self):
+        self.pieces.clear()
+        self.captured_pieces.clear()
 
     def show_instructions(self):
         instructions = [
@@ -931,14 +939,17 @@ class ChessBoard:
                     mouse_pos = pygame.mouse.get_pos()
                     if start_button.rect.collidepoint(mouse_pos):
                         if selected_options["Набор фигур:"] == 0:
-                            self.pieces = self.setup_pieces("king_queen", "white" if selected_options["Сторона:"] == 0 else "black")
+                            self.pieces = self.setup_pieces("king_queen",
+                                                            "white" if selected_options["Сторона:"] == 0 else "black")
                         else:
-                            self.pieces = self.setup_pieces("king_rook_pawns", "white" if selected_options["Сторона:"] == 0 else "black")
+                            self.pieces = self.setup_pieces("king_rook_pawns",
+                                                            "white" if selected_options["Сторона:"] == 0 else "black")
                         selecting = False
                     else:
                         for i, (option, values) in enumerate(options.items()):
                             for j, value in enumerate(values):
-                                value_rect = pygame.Rect(menu_rect.left + 200 + j * 150, menu_rect.top + 80 + i * 80, 150, 40)
+                                value_rect = pygame.Rect(menu_rect.left + 200 + j * 150, menu_rect.top + 80 + i * 80,
+                                                         150, 40)
                                 if value_rect.collidepoint(mouse_pos):
                                     selected_options[option] = j
 
