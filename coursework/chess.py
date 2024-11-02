@@ -133,40 +133,40 @@ class ChessBoard:
         if piece_set == "king_queen":
             if color == "white":
                 pieces = {
-                    "white_king": Piece("white", "king", (0, 4)),
-                    "white_queen": Piece("white", "queen", (0, 3)),
-                    "black_king": Piece("black", "king", (7, 4)),
-                    "black_rook": Piece("black", "rook", (7, 3)),
-                    "black_pawn_1": Piece("black", "pawn", (6, 2)),
-                    "black_pawn_2": Piece("black", "pawn", (6, 5))
+                    "white_king": Piece("white", "king", (7, 4)),
+                    "white_queen": Piece("white", "queen", (7, 3)),
+                    "black_king": Piece("black", "king", (0, 4)),
+                    "black_rook": Piece("black", "rook", (0, 3)),
+                    "black_pawn_1": Piece("black", "pawn", (1, 2)),
+                    "black_pawn_2": Piece("black", "pawn", (1, 5))
                 }
             else:
                 pieces = {
-                    "black_king": Piece("black", "king", (0, 4)),
-                    "black_queen": Piece("black", "queen", (0, 3)),
-                    "white_king": Piece("white", "king", (7, 4)),
-                    "white_rook": Piece("white", "rook", (7, 3)),
-                    "white_pawn_1": Piece("white", "pawn", (6, 2)),
-                    "white_pawn_2": Piece("white", "pawn", (6, 5))
+                    "black_king": Piece("black", "king", (7, 4)),
+                    "black_queen": Piece("black", "queen", (7, 3)),
+                    "white_king": Piece("white", "king", (0, 4)),
+                    "white_rook": Piece("white", "rook", (0, 3)),
+                    "white_pawn_1": Piece("white", "pawn", (1, 2)),
+                    "white_pawn_2": Piece("white", "pawn", (1, 5))
                 }
         elif piece_set == "king_rook_pawns":
             if color == "white":
                 pieces = {
-                    "white_king": Piece("white", "king", (0, 4)),
-                    "white_rook": Piece("white", "rook", (0, 3)),
-                    "white_pawn_1": Piece("white", "pawn", (1, 2)),
-                    "white_pawn_2": Piece("white", "pawn", (1, 5)),
-                    "black_king": Piece("black", "king", (7, 4)),
-                    "black_queen": Piece("black", "queen", (7, 3))
+                    "white_king": Piece("white", "king", (7, 4)),
+                    "white_rook": Piece("white", "rook", (7, 3)),
+                    "white_pawn_1": Piece("white", "pawn", (6, 2)),
+                    "white_pawn_2": Piece("white", "pawn", (6, 5)),
+                    "black_king": Piece("black", "king", (0, 4)),
+                    "black_queen": Piece("black", "queen", (0, 3))
                 }
             else:
                 pieces = {
-                    "black_king": Piece("black", "king", (0, 4)),
-                    "black_rook": Piece("black", "rook", (0, 3)),
-                    "black_pawn_1": Piece("black", "pawn", (1, 2)),
-                    "black_pawn_2": Piece("black", "pawn", (1, 5)),
-                    "white_king": Piece("white", "king", (7, 4)),
-                    "white_queen": Piece("white", "queen", (7, 3))
+                    "black_king": Piece("black", "king", (7, 4)),
+                    "black_rook": Piece("black", "rook", (7, 3)),
+                    "black_pawn_1": Piece("black", "pawn", (6, 2)),
+                    "black_pawn_2": Piece("black", "pawn", (6, 5)),
+                    "white_king": Piece("white", "king", (0, 4)),
+                    "white_queen": Piece("white", "queen", (0, 3))
                 }
         return pieces
 
@@ -625,7 +625,7 @@ class ChessBoard:
         elif piece.type == "knight":
             return (x_diff == 2 and y_diff == 1) or (x_diff == 1 and y_diff == 2)
         elif piece.type == "pawn":
-            direction = 1 if piece.color == "white" else -1
+            direction = -1 if piece.color == "white" else 1
             if target_piece:
                 return y_diff == 1 and x_diff == 1 and (new_pos[1] - piece.position[1]) == direction
             else:
@@ -697,8 +697,8 @@ class ChessBoard:
 
                 # Проверяем превращение пешки
                 if selected_piece.type == "pawn":
-                    if (selected_piece.color == "white" and clicked_pos[1] == 7) or \
-                            (selected_piece.color == "black" and clicked_pos[1] == 0):
+                    if (selected_piece.color == "white" and clicked_pos[1] == 0) or \
+                            (selected_piece.color == "black" and clicked_pos[1] == 7):
                         self.promote_pawn(selected_piece)
 
                 # Проверяем шах, мат или пат
