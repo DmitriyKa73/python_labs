@@ -93,7 +93,7 @@ class Piece:
 
 class ChessBoard:
     def __init__(self):
-        self.pieces = self.setup_pieces()
+        self.pieces = {}
         self.board_offset_x = (screen_width - 8 * tile_size) // 2
         self.board_offset_y = (screen_height - 8 * tile_size) // 2
         self.message = ""
@@ -128,15 +128,46 @@ class ChessBoard:
                            "Выход из игры")
         }
 
-    def setup_pieces(self):
-        pieces = {
-            "white_king": Piece("white", "king", (0, 4)),
-            "white_queen": Piece("white", "queen", (0, 3)),
-            "black_king": Piece("black", "king", (7, 4)),
-            "black_rook": Piece("black", "rook", (7, 3)),
-            "black_pawn_1": Piece("black", "pawn", (6, 2)),
-            "black_pawn_2": Piece("black", "pawn", (6, 5))
-        }
+    def setup_pieces(self, piece_set, color):
+        pieces = {}
+        if piece_set == "king_queen":
+            if color == "white":
+                pieces = {
+                    "white_king": Piece("white", "king", (0, 4)),
+                    "white_queen": Piece("white", "queen", (0, 3)),
+                    "black_king": Piece("black", "king", (7, 4)),
+                    "black_rook": Piece("black", "rook", (7, 3)),
+                    "black_pawn_1": Piece("black", "pawn", (6, 2)),
+                    "black_pawn_2": Piece("black", "pawn", (6, 5))
+                }
+            else:
+                pieces = {
+                    "black_king": Piece("black", "king", (0, 4)),
+                    "black_queen": Piece("black", "queen", (0, 3)),
+                    "white_king": Piece("white", "king", (7, 4)),
+                    "white_rook": Piece("white", "rook", (7, 3)),
+                    "white_pawn_1": Piece("white", "pawn", (6, 2)),
+                    "white_pawn_2": Piece("white", "pawn", (6, 5))
+                }
+        elif piece_set == "king_rook_pawns":
+            if color == "white":
+                pieces = {
+                    "white_king": Piece("white", "king", (0, 4)),
+                    "white_rook": Piece("white", "rook", (0, 3)),
+                    "white_pawn_1": Piece("white", "pawn", (1, 2)),
+                    "white_pawn_2": Piece("white", "pawn", (1, 5)),
+                    "black_king": Piece("black", "king", (7, 4)),
+                    "black_queen": Piece("black", "queen", (7, 3))
+                }
+            else:
+                pieces = {
+                    "black_king": Piece("black", "king", (0, 4)),
+                    "black_rook": Piece("black", "rook", (0, 3)),
+                    "black_pawn_1": Piece("black", "pawn", (1, 2)),
+                    "black_pawn_2": Piece("black", "pawn", (1, 5)),
+                    "white_king": Piece("white", "king", (7, 4)),
+                    "white_queen": Piece("white", "queen", (7, 3))
+                }
         return pieces
 
     def add_move_to_history(self, piece, start_pos, end_pos, captured=None):
@@ -704,10 +735,13 @@ class ChessBoard:
                 for button_name, button in self.buttons.items():
                     if button.handle_event(event):
                         if button_name == 'new_game':
-                            self.__init__()
+                            self.show_new_game_menu()
                             selected_piece = None
                             global current_turn
                             current_turn = "white"
+                            self.moves_history = []  # Стираем историю ходов
+                            self.current_save = None  # Удаляем текущее сохранение
+                            self.captured_pieces = []  # Удаляем съеденные фигуры
                         elif button_name == 'save_game':
                             self.save_game()
                         elif button_name == 'load_game':
@@ -779,6 +813,83 @@ class ChessBoard:
                     sys.exit()
                 elif event.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN):
                     showing_instructions = False
+
+    def show_new_game_menu(self):
+        # Создаем поверхность для меню новой игры с градиентным фоном
+        menu_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+        for i in range(screen_height):
+            alpha = min(128, i // 4)
+            pygame.draw.line(menu_surface, (70, 130, 180, alpha), (0, i), (screen_width, i))
+
+        # Создаем контейнер для меню новой игры
+        menu_width = 800  # Увеличиваем ширину меню
+        menu_height = 400
+        menu_rect = pygame.Rect((screen_width - menu_width) // 2,
+                                (screen_height - menu_height) // 2,
+                                menu_width, menu_height)
+
+        # Опции для выбора
+        options = {
+            "Противник:": ["   Игрок", "          ПК"],
+            "Сторона:": ["   Белые", "          Черные"],
+            "Набор фигур:": ["   Король, ферзь", "          Король, ладья, 2 пешки"]
+        }
+
+        selected_options = {
+            "Противник:": 0,
+            "Сторона:": 0,
+            "Набор фигур:": 0
+        }
+
+        selecting = True
+        while selecting:
+            screen.blit(menu_surface, (0, 0))
+
+            # Рисуем контейнер с обводкой
+            pygame.draw.rect(screen, (240, 240, 240), menu_rect)
+            pygame.draw.rect(screen, (100, 100, 100), menu_rect, 2)
+
+            title = font.render("Настройки новой игры", True, (0, 0, 0))
+            title_rect = title.get_rect(center=(screen_width // 2, menu_rect.top + 30))
+            screen.blit(title, title_rect)
+
+            # Отрисовка опций
+            for i, (option, values) in enumerate(options.items()):
+                option_text = font.render(option, True, (0, 0, 0))
+                screen.blit(option_text, (menu_rect.left + 50, menu_rect.top + 80 + i * 80))
+
+                for j, value in enumerate(values):
+                    value_text = font.render(value, True, (0, 0, 0) if selected_options[option] != j else (255, 0, 0))
+                    screen.blit(value_text, (menu_rect.left + 200 + j * 150, menu_rect.top + 80 + i * 80))
+
+            # Отрисовка кнопки "Начать игру"
+            start_button = Button(menu_rect.centerx - 100, menu_rect.bottom - 70, 200, 50, "Начать игру")
+            start_button.draw(screen)
+
+            pygame.display.flip()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if start_button.rect.collidepoint(mouse_pos):
+                        if selected_options["Набор фигур:"] == 0:
+                            self.pieces = self.setup_pieces("king_queen", "white" if selected_options["Сторона:"] == 0 else "black")
+                        else:
+                            self.pieces = self.setup_pieces("king_rook_pawns", "white" if selected_options["Сторона:"] == 0 else "black")
+                        selecting = False
+                    else:
+                        for i, (option, values) in enumerate(options.items()):
+                            for j, value in enumerate(values):
+                                value_rect = pygame.Rect(menu_rect.left + 200 + j * 150, menu_rect.top + 80 + i * 80, 150, 40)
+                                if value_rect.collidepoint(mouse_pos):
+                                    selected_options[option] = j
+
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_ESCAPE:
+                        selecting = False
 
 
 def main():
