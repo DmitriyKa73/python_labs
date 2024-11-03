@@ -101,6 +101,7 @@ class ChessBoard:
         self.message_timer = 0
         self.moves_history = []
         self.current_save = None
+        self.last_save_number = self.get_last_save_number()  # Устанавливаем начальное значение
         self.valid_moves = []  # Добавляем список для хранения возможных ходов
         self.captured_pieces = []  # Добавляем список для хранения съеденных фигур
         self.game_over = False  # Добавляем переменную для отслеживания конца игры
@@ -343,8 +344,19 @@ class ChessBoard:
 
         # Отрисовка сообщений
         if self.message and self.message_timer > 0:
-            text = font.render(self.message, True, (255, 0, 0))
-            screen.blit(text, (screen_width // 2 - text.get_width() // 2, 20))
+            # Создаем полупрозрачный фон для сообщения
+            message_surface = pygame.Surface((screen_width, 100), pygame.SRCALPHA)
+            message_surface.fill((0, 0, 0, 128))  # Черный цвет с прозрачностью
+
+            # Отрисовываем текст сообщения с тенью
+            text_shadow = font.render(self.message, True, (0, 0, 0))
+            text_surface = font.render(self.message, True, (255, 255, 255))
+            text_rect = text_surface.get_rect(center=(screen_width // 2, 50))
+            message_surface.blit(text_shadow, (text_rect.x + 2, text_rect.y + 2))
+            message_surface.blit(text_surface, text_rect)
+
+            # Отображаем сообщение на экране
+            screen.blit(message_surface, (0, 20))
             self.message_timer -= 1
 
         # Определяем размеры контейнеров
@@ -360,6 +372,33 @@ class ChessBoard:
                          (buttons_x - 2, buttons_y - 2, container_width + 4, container_height + 4), 2)
         pygame.draw.rect(screen, (240, 240, 240),
                          (buttons_x, buttons_y, container_width, container_height))
+
+        # Отрисовка заголовка "Шахматный эндшпиль" в две строки
+        title_font = pygame.font.Font(None, 52)
+        title_text_1 = title_font.render("Шахматный", True, (0, 0, 0))
+        title_text_2 = title_font.render("эндшпиль", True, (0, 0, 0))
+
+        # Создаем прямоугольники для заголовков
+        title_rect_1 = title_text_1.get_rect(center=(buttons_x + container_width // 2, buttons_y + 70))
+        title_rect_2 = title_text_2.get_rect(center=(buttons_x + container_width // 2, buttons_y + 115))
+
+        # Отрисовываем заголовки с тенями для красоты
+        shadow_offset = 2
+        shadow_color = (150, 150, 150)
+
+        # Тень для первого заголовка
+        shadow_rect_1 = title_rect_1.copy()
+        shadow_rect_1.center = (title_rect_1.centerx + shadow_offset, title_rect_1.centery + shadow_offset)
+        screen.blit(title_font.render("Шахматный", True, shadow_color), shadow_rect_1)
+
+        # Тень для второго заголовка
+        shadow_rect_2 = title_rect_2.copy()
+        shadow_rect_2.center = (title_rect_2.centerx + shadow_offset, title_rect_2.centery + shadow_offset)
+        screen.blit(title_font.render("эндшпиль", True, shadow_color), shadow_rect_2)
+
+        # Основной текст заголовков
+        screen.blit(title_text_1, title_rect_1)
+        screen.blit(title_text_2, title_rect_2)
 
         # Отрисовка кнопок
         for button in self.buttons.values():
@@ -379,9 +418,12 @@ class ChessBoard:
             screen.blit(save_name, (moves_x + 10, moves_y + 40))
 
         if not self.game_over:
-            turn_text = font.render(
-                f"Ход {'белых' if current_turn == 'white' else 'черных'}",
-                True, (0, 0, 0))
+            if not self.pieces:
+                turn_text = font.render("Начните новую игру!", True, (0, 0, 0))
+            else:
+                turn_text = font.render(
+                    f"Ход {'белых' if current_turn == 'white' else 'черных'}",
+                    True, (0, 0, 0))
             screen.blit(turn_text, (moves_x + 10, moves_y + 80))
         else:
             turn_text = font.render("Конец игры!", True, (0, 0, 0))
@@ -489,33 +531,47 @@ class ChessBoard:
                             selecting = False
                             return
 
-    def get_next_save_number(self):
+    def get_last_save_number(self):
         existing_saves = [f for f in os.listdir() if f.startswith('save') and f.endswith('.json')]
         if not existing_saves:
-            return 1
+            return 0
         numbers = [int(f.replace('save', '').replace('.json', '')) for f in existing_saves]
-        max_number = max(numbers)
-        next_number = max_number + 1 if max_number < 9 else 1
-        return next_number
+        return max(numbers)
+
+    def get_next_save_number(self):
+        # Если последний сохраненный файл - save9.json, возвращаем 1, иначе увеличиваем номер на 1
+        self.last_save_number = (self.last_save_number % 9) + 1
+        return self.last_save_number
 
     def delete_all_saves(self):
         saves = [f for f in os.listdir() if f.startswith('save') and f.endswith('.json')]
         for save in saves:
             os.remove(save)
         self.current_save = None
+        self.last_save_number = 0  # Сбрасываем номер последнего сохранения
         self.show_message("Все сохранения удалены!")
 
     def save_game(self):
+        if not self.pieces or self.game_over:
+            self.show_message("Нечего сохранять!")
+            return
+
         save_number = self.get_next_save_number()
         filename = f'save{save_number}.json'
+
+        # Формируем состояние игры для сохранения
         game_state = {
             'pieces': [(p.color, p.type, p.position) for p in self.pieces.values()],
             'moves_history': self.moves_history,
-            'current_turn': current_turn,
-            'captured_pieces': [(p.color, p.type) for p in self.captured_pieces]  # Сохраняем съеденные фигуры
+            'current_turn': self.current_save,
+            'captured_pieces': [(p.color, p.type) for p in self.captured_pieces]
         }
+
+        # Сохраняем состояние игры в файл
         with open(filename, 'w') as f:
             json.dump(game_state, f)
+
+        # Обновляем `current_save` и отображаем сообщение
         self.current_save = filename
         self.show_message(f"Игра сохранена как {filename}!")
 
@@ -753,6 +809,11 @@ class ChessBoard:
             selected_piece = clicked_piece
             self.valid_moves = self.get_valid_moves(selected_piece)
 
+        # Проверка на наличие только двух королей
+        if len(self.pieces) == 2 and all(piece.type == "king" for piece in self.pieces.values()):
+            self.show_message("Пат! Ничья!")
+            self.game_over = True
+
     def handle_events(self):
         global selected_piece
         for event in pygame.event.get():
@@ -869,9 +930,9 @@ class ChessBoard:
 
         # Опции для выбора
         options = {
-            "Противник:": ["   Игрок", "          ПК"],
-            "Сторона:": ["   Белые", "          Черные"],
-            "Набор фигур:": ["   Король, ферзь", "          Король, ладья, 2 пешки"]
+            "Противник:": ["Игрок", "ПК"],
+            "Сторона:": ["Белые", "Черные"],
+            "Набор фигур:": ["Король, ферзь", "Король, ладья, 2 пешки"]
         }
 
         selected_options = {
@@ -899,11 +960,16 @@ class ChessBoard:
 
                 for j, value in enumerate(values):
                     value_text = font.render(value, True, (0, 0, 0) if selected_options[option] != j else (255, 0, 0))
-                    screen.blit(value_text, (menu_rect.left + 200 + j * 150, menu_rect.top + 80 + i * 80))
+                    # Перемещение кнопок выбора команды, набора фигур и тд
+                    screen.blit(value_text, (menu_rect.left + 250 + j * 200, menu_rect.top + 80 + i * 80))
 
             # Отрисовка кнопки "Начать игру"
-            start_button = Button(menu_rect.centerx - 100, menu_rect.bottom - 70, 200, 50, "Начать игру")
+            start_button = Button(menu_rect.centerx - 5, menu_rect.bottom - 70, 200, 50, "Начать игру")
             start_button.draw(screen)
+
+            # Отрисовка кнопки "Назад"
+            back_button = Button(menu_rect.centerx - 240, menu_rect.bottom - 70, 200, 50, "Назад")
+            back_button.draw(screen)
 
             pygame.display.flip()
 
@@ -920,6 +986,8 @@ class ChessBoard:
                         else:
                             self.pieces = self.setup_pieces("king_rook_pawns",
                                                             "white" if selected_options["Сторона:"] == 0 else "black")
+                        selecting = False
+                    elif back_button.rect.collidepoint(mouse_pos):
                         selecting = False
                     else:
                         for i, (option, values) in enumerate(options.items()):
