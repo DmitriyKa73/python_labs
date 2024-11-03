@@ -103,6 +103,7 @@ class ChessBoard:
         self.current_save = None
         self.valid_moves = []  # Добавляем список для хранения возможных ходов
         self.captured_pieces = []  # Добавляем список для хранения съеденных фигур
+        self.game_over = False  # Добавляем переменную для отслеживания конца игры
 
         # Создаем кнопки
         button_width = 200
@@ -141,53 +142,10 @@ class ChessBoard:
                     return pos
             return None
 
-        if piece_set == "king_queen":
-            if color == "white":
-                pieces = {
-                    "white_king": Piece("white", "king", positions.pop()),
-                    "white_queen": Piece("white", "queen", positions.pop()),
-                    "black_king": Piece("black", "king", positions.pop()),
-                    "black_rook": Piece("black", "rook", positions.pop()),
-                    "black_pawn_1": Piece("black", "pawn", get_random_position()),
-                    "black_pawn_2": Piece("black", "pawn", get_random_position())
-                }
-            else:
-                pieces = {
-                    "black_king": Piece("black", "king", positions.pop()),
-                    "black_queen": Piece("black", "queen", positions.pop()),
-                    "white_king": Piece("white", "king", positions.pop()),
-                    "white_rook": Piece("white", "rook", positions.pop()),
-                    "white_pawn_1": Piece("white", "pawn", get_random_position()),
-                    "white_pawn_2": Piece("white", "pawn", get_random_position())
-                }
-        elif piece_set == "king_rook_pawns":
-            if color == "white":
-                pieces = {
-                    "white_king": Piece("white", "king", positions.pop()),
-                    "white_rook": Piece("white", "rook", positions.pop()),
-                    "white_pawn_1": Piece("white", "pawn", get_random_position()),
-                    "white_pawn_2": Piece("white", "pawn", get_random_position()),
-                    "black_king": Piece("black", "king", positions.pop()),
-                    "black_queen": Piece("black", "queen", positions.pop())
-                }
-            else:
-                pieces = {
-                    "black_king": Piece("black", "king", positions.pop()),
-                    "black_rook": Piece("black", "rook", positions.pop()),
-                    "black_pawn_1": Piece("black", "pawn", get_random_position()),
-                    "black_pawn_2": Piece("black", "pawn", get_random_position()),
-                    "white_king": Piece("white", "king", positions.pop()),
-                    "white_queen": Piece("white", "queen", positions.pop())
-                }
-
-        # Проверяем, чтобы не было шахов и матов
-        while self.is_check("white") or self.is_check("black") or self.is_checkmate("white") or self.is_checkmate(
-                "black"):
-            positions = [(x, y) for x in range(8) for y in range(8)]
-            random.shuffle(positions)
+        def create_pieces():
             if piece_set == "king_queen":
                 if color == "white":
-                    pieces = {
+                    return {
                         "white_king": Piece("white", "king", positions.pop()),
                         "white_queen": Piece("white", "queen", positions.pop()),
                         "black_king": Piece("black", "king", positions.pop()),
@@ -196,7 +154,7 @@ class ChessBoard:
                         "black_pawn_2": Piece("black", "pawn", get_random_position())
                     }
                 else:
-                    pieces = {
+                    return {
                         "black_king": Piece("black", "king", positions.pop()),
                         "black_queen": Piece("black", "queen", positions.pop()),
                         "white_king": Piece("white", "king", positions.pop()),
@@ -206,7 +164,7 @@ class ChessBoard:
                     }
             elif piece_set == "king_rook_pawns":
                 if color == "white":
-                    pieces = {
+                    return {
                         "white_king": Piece("white", "king", positions.pop()),
                         "white_rook": Piece("white", "rook", positions.pop()),
                         "white_pawn_1": Piece("white", "pawn", get_random_position()),
@@ -215,7 +173,7 @@ class ChessBoard:
                         "black_queen": Piece("black", "queen", positions.pop())
                     }
                 else:
-                    pieces = {
+                    return {
                         "black_king": Piece("black", "king", positions.pop()),
                         "black_rook": Piece("black", "rook", positions.pop()),
                         "black_pawn_1": Piece("black", "pawn", get_random_position()),
@@ -223,6 +181,17 @@ class ChessBoard:
                         "white_king": Piece("white", "king", positions.pop()),
                         "white_queen": Piece("white", "queen", positions.pop())
                     }
+
+        # Создаем фигуры и проверяем на шах
+        while True:
+            positions = [(x, y) for x in range(8) for y in range(8)]
+            random.shuffle(positions)
+            pieces = create_pieces()
+            self.pieces = pieces
+
+            # Проверяем, нет ли шаха для обоих королей
+            if not self.is_check("white") and not self.is_check("black"):
+                break
 
         return pieces
 
@@ -409,10 +378,14 @@ class ChessBoard:
             save_name = font.render(f"{self.current_save}", True, (0, 0, 0))
             screen.blit(save_name, (moves_x + 10, moves_y + 40))
 
-        turn_text = font.render(
-            f"{'Конец игры!' if self.is_checkmate(current_turn) or self.is_stalemate(current_turn) else f'Ход {'белых' if current_turn == 'white' else 'черных'}'}",
-            True, (0, 0, 0))
-        screen.blit(turn_text, (moves_x + 10, moves_y + 80))
+        if not self.game_over:
+            turn_text = font.render(
+                f"Ход {'белых' if current_turn == 'white' else 'черных'}",
+                True, (0, 0, 0))
+            screen.blit(turn_text, (moves_x + 10, moves_y + 80))
+        else:
+            turn_text = font.render("Конец игры!", True, (0, 0, 0))
+            screen.blit(turn_text, (moves_x + 10, moves_y + 80))
 
         # Отрисовка истории ходов
         history_text = font.render("История ходов:", True, (0, 0, 0))
@@ -762,10 +735,12 @@ class ChessBoard:
                 if self.is_check(next_color):
                     if self.is_checkmate(next_color):
                         self.show_message(f"Шах и мат! Победа {current_turn}!")
+                        self.game_over = True
                     else:
                         self.show_message("Шах!")
                 elif self.is_stalemate(next_color):
                     self.show_message("Пат! Ничья!")
+                    self.game_over = True
 
                 current_turn = next_color
                 selected_piece = None
@@ -800,6 +775,7 @@ class ChessBoard:
                             self.moves_history = []  # Стираем историю ходов
                             self.current_save = None  # Удаляем текущее сохранение
                             self.captured_pieces = []  # Удаляем съеденные фигуры
+                            self.game_over = False  # Сбрасываем состояние конца игры
 
                         elif button_name == 'save_game':
                             self.save_game()
