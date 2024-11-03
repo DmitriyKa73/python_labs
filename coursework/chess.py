@@ -101,7 +101,6 @@ class ChessBoard:
         self.message_timer = 0
         self.moves_history = []
         self.current_save = None
-        self.last_save_number = self.get_last_save_number()  # Устанавливаем начальное значение
         self.valid_moves = []  # Добавляем список для хранения возможных ходов
         self.captured_pieces = []  # Добавляем список для хранения съеденных фигур
         self.game_over = False  # Добавляем переменную для отслеживания конца игры
@@ -416,8 +415,12 @@ class ChessBoard:
             screen.blit(save_text, (moves_x + 10, moves_y + 10))
             save_name = font.render(f"{self.current_save}", True, (0, 0, 0))
             screen.blit(save_name, (moves_x + 10, moves_y + 40))
+            turn_text = font.render(
+            f"Ход {'белых' if current_turn == 'white' else 'черных'}",
+            True, (0, 0, 0))
+            screen.blit(turn_text, (moves_x + 10, moves_y + 80))
 
-        if not self.game_over:
+        elif not self.game_over:
             if not self.pieces:
                 turn_text = font.render("Начните новую игру!", True, (0, 0, 0))
             else:
@@ -531,24 +534,20 @@ class ChessBoard:
                             selecting = False
                             return
 
-    def get_last_save_number(self):
+    def get_next_save_number(self):
         existing_saves = [f for f in os.listdir() if f.startswith('save') and f.endswith('.json')]
         if not existing_saves:
-            return 0
+            return 1
         numbers = [int(f.replace('save', '').replace('.json', '')) for f in existing_saves]
-        return max(numbers)
-
-    def get_next_save_number(self):
-        # Если последний сохраненный файл - save9.json, возвращаем 1, иначе увеличиваем номер на 1
-        self.last_save_number = (self.last_save_number % 9) + 1
-        return self.last_save_number
+        max_number = max(numbers)
+        next_number = max_number + 1 if max_number < 9 else 1
+        return next_number
 
     def delete_all_saves(self):
         saves = [f for f in os.listdir() if f.startswith('save') and f.endswith('.json')]
         for save in saves:
             os.remove(save)
         self.current_save = None
-        self.last_save_number = 0  # Сбрасываем номер последнего сохранения
         self.show_message("Все сохранения удалены!")
 
     def save_game(self):
@@ -558,20 +557,14 @@ class ChessBoard:
 
         save_number = self.get_next_save_number()
         filename = f'save{save_number}.json'
-
-        # Формируем состояние игры для сохранения
         game_state = {
             'pieces': [(p.color, p.type, p.position) for p in self.pieces.values()],
             'moves_history': self.moves_history,
-            'current_turn': self.current_save,
-            'captured_pieces': [(p.color, p.type) for p in self.captured_pieces]
+            'current_turn': current_turn,
+            'captured_pieces': [(p.color, p.type) for p in self.captured_pieces]  # Сохраняем съеденные фигуры
         }
-
-        # Сохраняем состояние игры в файл
         with open(filename, 'w') as f:
             json.dump(game_state, f)
-
-        # Обновляем `current_save` и отображаем сообщение
         self.current_save = filename
         self.show_message(f"Игра сохранена как {filename}!")
 
