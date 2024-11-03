@@ -566,7 +566,11 @@ class ChessBoard:
         with open(filename, 'w') as f:
             json.dump(game_state, f)
         self.current_save = filename
-        self.show_message(f"Игра сохранена как {filename}!")
+        if save_number < 9:
+            self.show_message(f"Игра сохранена как {filename}!")
+        else:
+            self.show_message(f"Сохранено в {filename} Дальнейшие сохранения будут в save1.json. Очистите память")
+
 
     def load_game(self):
         saves = [f for f in os.listdir() if f.startswith('save') and f.endswith('.json')]
