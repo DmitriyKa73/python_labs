@@ -19,6 +19,7 @@ font = pygame.font.Font(None, 36)
 background = pygame.image.load("assets/background.jpg")
 background = pygame.transform.scale(background, (screen_width, screen_height))
 
+
 # Загрузка моделей фигур из папки assets
 def load_images():
     pieces = {}
@@ -342,7 +343,8 @@ class ChessBoard:
 
             # Буквы снизу
             pygame.draw.rect(screen, (26, 7, 4),
-                             (self.board_offset_x -30 + i * tile_size, self.board_offset_y + 8 * tile_size, tile_size + 30, 30))
+                             (self.board_offset_x - 30 + i * tile_size, self.board_offset_y + 8 * tile_size,
+                              tile_size + 30, 30))
             text = font.render(chr(97 + i), True, (255, 255, 255))
             screen.blit(text, (
                 self.board_offset_x + i * tile_size + tile_size // 3, self.board_offset_y + 8 * tile_size + 5))
@@ -434,8 +436,8 @@ class ChessBoard:
             save_name = font.render(f"{self.current_save}", True, (0, 0, 0))
             screen.blit(save_name, (moves_x + 10, moves_y + 40))
             turn_text = font.render(
-            f"Ход {'белых' if current_turn == 'white' else 'черных'}",
-            True, (0, 0, 0))
+                f"Ход {'белых' if current_turn == 'white' else 'черных'}",
+                True, (0, 0, 0))
             screen.blit(turn_text, (moves_x + 10, moves_y + 80))
 
         elif not self.game_over:
@@ -590,7 +592,6 @@ class ChessBoard:
         else:
             self.show_message(f"Сохранено в {filename} Дальнейшие сохранения будут в save1.json. Очистите память")
 
-
     def load_game(self):
         saves = [f for f in os.listdir() if f.startswith('save') and f.endswith('.json')]
         if not saves:
@@ -737,7 +738,6 @@ class ChessBoard:
                 return x_diff == 0 and (new_pos[1] - piece.position[1]) == direction and y_diff == 1
 
         return False
-
     def get_valid_moves(self, piece):
         valid_moves = []
         for x in range(8):
@@ -832,7 +832,7 @@ class ChessBoard:
             self.game_over = True
 
     def handle_events(self):
-        global selected_piece
+        global selected_piece, current_turn
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -844,16 +844,9 @@ class ChessBoard:
                 for button_name, button in self.buttons.items():
                     if button.handle_event(event):
                         if button_name == 'new_game':
-                            self.clear_board()  # Очищаем доску перед началом новой игры
+                            # Сохраняем текущее состояние перед показом меню
                             self.show_new_game_menu()
                             selected_piece = None
-                            global current_turn
-                            current_turn = "white"
-
-                            self.moves_history = []  # Стираем историю ходов
-                            self.current_save = None  # Удаляем текущее сохранение
-                            self.captured_pieces = []  # Удаляем съеденные фигуры
-                            self.game_over = False  # Сбрасываем состояние конца игры
 
                         elif button_name == 'save_game':
                             self.save_game()
@@ -936,6 +929,16 @@ class ChessBoard:
                     showing_instructions = False
 
     def show_new_game_menu(self):
+        global current_turn
+        # Сохраняем текущее состояние игры
+        saved_state = {
+            'pieces': self.pieces.copy(),
+            'captured_pieces': self.captured_pieces.copy(),
+            'moves_history': self.moves_history.copy(),
+            'current_turn': current_turn,
+            'game_over': self.game_over
+        }
+
         # Создаем поверхность для меню новой игры с градиентным фоном
         menu_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
         for i in range(screen_height):
@@ -963,6 +966,7 @@ class ChessBoard:
         }
 
         selecting = True
+        start_new_game = False
         while selecting:
             screen.blit(background, (0, 0))  # Отрисовка фона
             screen.blit(menu_surface, (0, 0))
@@ -1002,14 +1006,15 @@ class ChessBoard:
                 elif event.type == pygame.MOUSEBUTTONDOWN:
                     mouse_pos = pygame.mouse.get_pos()
                     if start_button.rect.collidepoint(mouse_pos):
-                        if selected_options["Набор фигур:"] == 0:
-                            self.pieces = self.setup_pieces("king_queen",
-                                                            "white" if selected_options["Сторона:"] == 0 else "black")
-                        else:
-                            self.pieces = self.setup_pieces("king_rook_pawns",
-                                                            "white" if selected_options["Сторона:"] == 0 else "black")
+                        start_new_game = True
                         selecting = False
                     elif back_button.rect.collidepoint(mouse_pos):
+                        # Восстанавливаем сохраненное состояние игры
+                        self.pieces = saved_state['pieces']
+                        self.captured_pieces = saved_state['captured_pieces']
+                        self.moves_history = saved_state['moves_history']
+                        current_turn = saved_state['current_turn']
+                        self.game_over = saved_state['game_over']
                         selecting = False
                     else:
                         for i, (option, values) in enumerate(options.items()):
@@ -1021,8 +1026,27 @@ class ChessBoard:
 
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
+                        # Восстанавливаем сохраненное состояние игры
+                        self.pieces = saved_state['pieces']
+                        self.captured_pieces = saved_state['captured_pieces']
+                        self.moves_history = saved_state['moves_history']
+                        current_turn = saved_state['current_turn']
+                        self.game_over = saved_state['game_over']
                         selecting = False
 
+        if start_new_game:
+            self.clear_board()  # Очищаем доску перед началом новой игры
+            if selected_options["Набор фигур:"] == 0:
+                self.pieces = self.setup_pieces("king_queen",
+                                                "white" if selected_options["Сторона:"] == 0 else "black")
+            else:
+                self.pieces = self.setup_pieces("king_rook_pawns",
+                                                "white" if selected_options["Сторона:"] == 0 else "black")
+            self.moves_history = []  # Стираем историю ходов
+            self.current_save = None  # Удаляем текущее сохранение
+            self.captured_pieces = []  # Удаляем съеденные фигуры
+            self.game_over = False  # Сбрасываем состояние конца игры
+            current_turn = "white"  # Сбрасываем ход
 
 def main():
     board = ChessBoard()
@@ -1037,4 +1061,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
