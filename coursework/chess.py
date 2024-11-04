@@ -9,12 +9,15 @@ pygame.init()
 info = pygame.display.Info()
 screen_width = info.current_w
 screen_height = info.current_h
-tile_size = min(screen_width, screen_height) // 8
+tile_size = min(screen_width, screen_height) // 9
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.FULLSCREEN)
 pygame.display.set_caption("Chess Endgame Simulator")
 clock = pygame.time.Clock()
 font = pygame.font.Font(None, 36)
 
+# Загрузка фона
+background = pygame.image.load("assets/background.jpg")
+background = pygame.transform.scale(background, (screen_width, screen_height))
 
 # Загрузка моделей фигур из папки assets
 def load_images():
@@ -30,7 +33,7 @@ def load_images():
 
 # Шахматная доска
 board_color_1 = (235, 235, 208)
-board_color_2 = (119, 148, 85)
+board_color_2 = (92, 86, 83)
 highlight_color = (186, 202, 68)
 button_color = (70, 130, 180)  # Более насыщенный синий цвет
 button_hover_color = (100, 149, 237)  # Светло-синий при наведении
@@ -115,7 +118,7 @@ class ChessBoard:
         # Вычисляем начальную позицию для центрирования кнопок по вертикали
         container_height = 600  # Высота контейнера
         total_buttons_height = (button_height + button_spacing) * 5 - button_spacing
-        start_y = (container_height - total_buttons_height) // 2 + 200  # 170 - это отступ контейнера сверху
+        start_y = (container_height - total_buttons_height) // 2 + 200
 
         self.buttons = {
             'new_game': Button(button_x, start_y, button_width, button_height, "Новая игра"),
@@ -199,8 +202,8 @@ class ChessBoard:
         piece_symbol = {
             'king': 'K', 'queen': 'Q', 'rook': 'R', 'pawn': '', 'bishop': 'B', 'knight': 'N'
         }
-        start_coord = f"{chr(97 + start_pos[0])}{start_pos[1] + 1}"
-        end_coord = f"{chr(97 + end_pos[0])}{end_pos[1] + 1}"
+        start_coord = f"{chr(97 + start_pos[0])}{8 - start_pos[1]}"
+        end_coord = f"{chr(97 + end_pos[0])}{8 - end_pos[1]}"
         move_text = f"{piece_symbol[piece.type]}{start_coord}-{end_coord}"
         if captured:
             move_text += "x"
@@ -310,6 +313,9 @@ class ChessBoard:
         return True
 
     def draw(self, screen):
+        # Отрисовка фона
+        screen.blit(background, (0, 0))
+
         # Отрисовка доски
         for row in range(8):
             for col in range(8):
@@ -326,16 +332,28 @@ class ChessBoard:
                                 self.board_offset_y + move[1] * tile_size + tile_size // 2),
                                10)
 
-        # Отрисовка координат
+            # Отрисовка координат и полоски вокруг доски
         for i in range(8):
             # Цифры слева
-            text = font.render(str(8 - i), True, (0, 0, 0))
+            pygame.draw.rect(screen, (26, 7, 4),
+                             (self.board_offset_x - 30, self.board_offset_y + i * tile_size, 30, tile_size))
+            text = font.render(str(8 - i), True, (255, 255, 255))
             screen.blit(text, (self.board_offset_x - 25, self.board_offset_y + i * tile_size + tile_size // 3))
 
             # Буквы снизу
-            text = font.render(chr(97 + i), True, (0, 0, 0))
+            pygame.draw.rect(screen, (26, 7, 4),
+                             (self.board_offset_x -30 + i * tile_size, self.board_offset_y + 8 * tile_size, tile_size + 30, 30))
+            text = font.render(chr(97 + i), True, (255, 255, 255))
             screen.blit(text, (
-                self.board_offset_x + i * tile_size + tile_size // 3, self.board_offset_y + 8 * tile_size + 10))
+                self.board_offset_x + i * tile_size + tile_size // 3, self.board_offset_y + 8 * tile_size + 5))
+
+            # Полоска сверху
+            pygame.draw.rect(screen, (26, 7, 4),
+                             (self.board_offset_x - 30, self.board_offset_y - 30, 8 * tile_size + 60, 30))
+
+            # Полоска справа
+            pygame.draw.rect(screen, (26, 7, 4),
+                             (self.board_offset_x + 8 * tile_size, self.board_offset_y - 30, 30, 8 * tile_size + 60))
 
         # Отрисовка фигур
         for piece in self.pieces.values():
@@ -351,11 +369,11 @@ class ChessBoard:
             text_shadow = font.render(self.message, True, (0, 0, 0))
             text_surface = font.render(self.message, True, (255, 255, 255))
             text_rect = text_surface.get_rect(center=(screen_width // 2, 50))
-            message_surface.blit(text_shadow, (text_rect.x + 2, text_rect.y + 2))
+            message_surface.blit(text_shadow, (text_rect.x + 4, text_rect.y + 4))
             message_surface.blit(text_surface, text_rect)
 
             # Отображаем сообщение на экране
-            screen.blit(message_surface, (0, 20))
+            screen.blit(message_surface, (0, 0))
             self.message_timer -= 1
 
         # Определяем размеры контейнеров
@@ -369,7 +387,7 @@ class ChessBoard:
         # Отрисовка контейнера для кнопок
         pygame.draw.rect(screen, (100, 100, 100),
                          (buttons_x - 2, buttons_y - 2, container_width + 4, container_height + 4), 2)
-        pygame.draw.rect(screen, (240, 240, 240),
+        pygame.draw.rect(screen, (235, 235, 208),
                          (buttons_x, buttons_y, container_width, container_height))
 
         # Отрисовка заголовка "Шахматный эндшпиль" в две строки
@@ -406,7 +424,7 @@ class ChessBoard:
         # Отрисовка правого контейнера
         pygame.draw.rect(screen, (100, 100, 100),
                          (moves_x - 2, moves_y - 2, container_width + 4, container_height + 4), 2)
-        pygame.draw.rect(screen, (240, 240, 240),
+        pygame.draw.rect(screen, (235, 235, 208),
                          (moves_x, moves_y, container_width, container_height))
 
         # Отображение текущего сохранения и хода в правом контейнере
@@ -478,7 +496,7 @@ class ChessBoard:
         # Создаем поверхность для меню выбора фигуры
         menu_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
         for i in range(screen_height):
-            alpha = min(128, i // 4)
+            alpha = min(128, i // 16)
             pygame.draw.line(menu_surface, (70, 130, 180, alpha), (0, i), (screen_width, i))
 
         menu_width = 800  # Увеличиваем ширину меню
@@ -503,10 +521,11 @@ class ChessBoard:
 
         selecting = True
         while selecting:
+            screen.blit(background, (0, 0))  # Отрисовка фона
             screen.blit(menu_surface, (0, 0))
 
             # Рисуем контейнер с обводкой
-            pygame.draw.rect(screen, (240, 240, 240), menu_rect)
+            pygame.draw.rect(screen, (235, 235, 208), menu_rect)
             pygame.draw.rect(screen, (100, 100, 100), menu_rect, 2)
 
             title = font.render("Выберите фигуру для превращения:", True, (0, 0, 0))
@@ -581,7 +600,7 @@ class ChessBoard:
         # Создаем поверхность для меню загрузки с градиентным фоном
         menu_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
         for i in range(screen_height):
-            alpha = min(128, i // 4)
+            alpha = min(128, i // 16)
             pygame.draw.line(menu_surface, (70, 130, 180, alpha), (0, i), (screen_width, i))
 
         # Создаем контейнер для меню загрузки
@@ -592,7 +611,7 @@ class ChessBoard:
                                 menu_width, menu_height)
 
         # Рисуем контейнер с обводкой
-        pygame.draw.rect(menu_surface, (240, 240, 240), menu_rect)
+        pygame.draw.rect(menu_surface, (235, 235, 208), menu_rect)
         pygame.draw.rect(menu_surface, (100, 100, 100), menu_rect, 2)
 
         # Добавляем заголовок
@@ -621,6 +640,7 @@ class ChessBoard:
 
         selecting = True
         while selecting:
+            screen.blit(background, (0, 0))  # Отрисовка фона
             screen.blit(menu_surface, (0, 0))
             screen.blit(title, title_rect)
 
@@ -866,35 +886,39 @@ class ChessBoard:
 
     def show_instructions(self):
         instructions = [
-            "Инструкция по игре:",
+            "ИНСТРУКЦИЯ ПО ИГРЕ ШАХМАТНЫЙ ЭНДШПИЛЬ:",
+            " ",
             "1. Кликните на фигуру, чтобы выбрать ее",
             "2. Кликните на клетку, куда хотите переместить фигуру",
             "3. Используйте кнопки слева для управления игрой",
             "4. История ходов отображается справа",
-            "5. Нажмите ESC для выхода",
-            "",
-            "Нажмите любую клавишу, чтобы продолжить..."
+            "5. Съеденные фигуры отображаются сбоку от доски",
+            "6. При мате или пате игра завершается с соответствующим сообщением",
+            " ",
+            "Нажмите любую клавишу, чтобы продолжить...",
+            "gamedev Dmitriy Kazarov, 2024"
         ]
 
         # Создаем поверхность для инструкций с градиентным фоном
         instruction_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
         for i in range(screen_height):
-            alpha = min(128, i // 4)
+            alpha = min(128, i // 16)
             pygame.draw.line(instruction_surface, (70, 130, 180, alpha), (0, i), (screen_width, i))
 
         # Создаем контейнер для инструкций
-        container_width = 800
-        container_height = 400
+        container_width = 900
+        container_height = 500
         container_rect = pygame.Rect((screen_width - container_width) // 2,
                                      (screen_height - container_height) // 2,
                                      container_width, container_height)
 
         showing_instructions = True
         while showing_instructions:
+            screen.blit(background, (0, 0))  # Отрисовка фона
             screen.blit(instruction_surface, (0, 0))
 
             # Рисуем контейнер с обводкой
-            pygame.draw.rect(screen, (240, 240, 240), container_rect)
+            pygame.draw.rect(screen, (235, 235, 208), container_rect)
             pygame.draw.rect(screen, (100, 100, 100), container_rect, 2)
 
             for i, line in enumerate(instructions):
@@ -915,7 +939,7 @@ class ChessBoard:
         # Создаем поверхность для меню новой игры с градиентным фоном
         menu_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
         for i in range(screen_height):
-            alpha = min(128, i // 4)
+            alpha = min(128, i // 16)
             pygame.draw.line(menu_surface, (70, 130, 180, alpha), (0, i), (screen_width, i))
 
         # Создаем контейнер для меню новой игры
@@ -940,10 +964,11 @@ class ChessBoard:
 
         selecting = True
         while selecting:
+            screen.blit(background, (0, 0))  # Отрисовка фона
             screen.blit(menu_surface, (0, 0))
 
             # Рисуем контейнер с обводкой
-            pygame.draw.rect(screen, (240, 240, 240), menu_rect)
+            pygame.draw.rect(screen, (235, 235, 208), menu_rect)
             pygame.draw.rect(screen, (100, 100, 100), menu_rect, 2)
 
             title = font.render("Настройки новой игры", True, (0, 0, 0))
@@ -1012,3 +1037,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    
