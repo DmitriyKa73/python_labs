@@ -387,10 +387,11 @@ class ChessBoard:
         moves_y = 170
 
         # Отрисовка контейнера для кнопок
-        pygame.draw.rect(screen, (100, 100, 100),
-                         (buttons_x - 2, buttons_y - 2, container_width + 4, container_height + 4), 2)
+
         pygame.draw.rect(screen, (235, 235, 208),
                          (buttons_x, buttons_y, container_width, container_height))
+        pygame.draw.rect(screen, (26, 7, 4),  # Коричневый цвет
+                         (buttons_x, buttons_y, container_width, container_height), 6)
 
         # Отрисовка заголовка "Шахматный эндшпиль" в две строки
         title_font = pygame.font.Font(None, 52)
@@ -424,10 +425,11 @@ class ChessBoard:
             button.draw(screen)
 
         # Отрисовка правого контейнера
-        pygame.draw.rect(screen, (100, 100, 100),
-                         (moves_x - 2, moves_y - 2, container_width + 4, container_height + 4), 2)
+
         pygame.draw.rect(screen, (235, 235, 208),
                          (moves_x, moves_y, container_width, container_height))
+        pygame.draw.rect(screen, (26, 7, 4),  # Коричневый цвет
+                         (moves_x, moves_y, container_width, container_height), 6)
 
         # Отображение текущего сохранения и хода в правом контейнере
         if self.current_save:
@@ -528,7 +530,7 @@ class ChessBoard:
 
             # Рисуем контейнер с обводкой
             pygame.draw.rect(screen, (235, 235, 208), menu_rect)
-            pygame.draw.rect(screen, (100, 100, 100), menu_rect, 2)
+            pygame.draw.rect(screen, (26, 7, 4), menu_rect, 6)
 
             title = font.render("Выберите фигуру для превращения:", True, (0, 0, 0))
             title_rect = title.get_rect(center=(screen_width // 2, menu_rect.top + 30))
@@ -613,7 +615,7 @@ class ChessBoard:
 
         # Рисуем контейнер с обводкой
         pygame.draw.rect(menu_surface, (235, 235, 208), menu_rect)
-        pygame.draw.rect(menu_surface, (100, 100, 100), menu_rect, 2)
+        pygame.draw.rect(menu_surface, (26, 7, 4), menu_rect, 6)
 
         # Добавляем заголовок
         title = font.render("Выберите нужное сохранение:", True, (0, 0, 0))
@@ -912,7 +914,7 @@ class ChessBoard:
 
             # Рисуем контейнер с обводкой
             pygame.draw.rect(screen, (235, 235, 208), container_rect)
-            pygame.draw.rect(screen, (100, 100, 100), container_rect, 2)
+            pygame.draw.rect(screen, (26, 7, 4), container_rect, 6)
 
             for i, line in enumerate(instructions):
                 text = font.render(line, True, (0, 0, 0))
