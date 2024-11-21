@@ -3,46 +3,42 @@ import sys
 import json
 import os
 import random
+import hashlib
+import re
 
-# Инициализация Pygame и глобальных переменных
 pygame.init()
 info = pygame.display.Info()
 screen_width = info.current_w
 screen_height = info.current_h
 tile_size = min(screen_width, screen_height) // 9
 screen = pygame.display.set_mode((screen_width, screen_height), pygame.FULLSCREEN)
-pygame.display.set_caption("Chess Endgame Simulator")
+pygame.display.set_caption("Шахматный эндшпиль")
 clock = pygame.time.Clock()
 font = pygame.font.Font(None, 36)
 
-# Загрузка фона
 background = pygame.image.load("assets/background.jpg")
 background = pygame.transform.scale(background, (screen_width, screen_height))
 
-
-# Загрузка моделей фигур из папки assets
 def load_images():
     pieces = {}
     for color in ["black", "white"]:
         for piece in ["king", "queen", "rook", "pawn", "bishop", "knight"]:
             image = pygame.image.load(f"assets/{color}_{piece}.png").convert_alpha()
             pieces[f"{color}_{piece}"] = pygame.transform.scale(image, (tile_size, tile_size))
-            # Добавляем уменьшенные версии фигур для отображения съеденных
             pieces[f"{color}_{piece}_small"] = pygame.transform.scale(image, (tile_size // 2, tile_size // 2))
     return pieces
-
 
 # Шахматная доска
 board_color_1 = (235, 235, 208)
 board_color_2 = (92, 86, 83)
 highlight_color = (186, 202, 68)
-button_color = (70, 130, 180)  # Более насыщенный синий цвет
-button_hover_color = (100, 149, 237)  # Светло-синий при наведении
+button_color = (70, 130, 180)
+button_hover_color = (100, 149, 237)
 selected_piece = None
-current_turn = "white"  # Добавляем переменную для отслеживания текущего хода
+current_turn = "white"
 
 pieces = load_images()
-
+is_authenticated = False
 
 class Button:
     def __init__(self, x, y, width, height, text, color=None):
@@ -50,17 +46,18 @@ class Button:
         self.text = text
         self.is_hovered = False
         self.custom_color = color
+        self.disabled = False
 
     def draw(self, screen):
-        # Скругленные углы и градиент
         if self.custom_color:
             color = self.custom_color
         else:
             color = button_hover_color if self.is_hovered else button_color
+        if self.disabled:
+            color = (169, 169, 169)  # Серый цвет для неактивной кнопки
         pygame.draw.rect(screen, color, self.rect, border_radius=10)
         pygame.draw.rect(screen, (50, 50, 50), self.rect, 2, border_radius=10)
 
-        # Тень для текста
         text_shadow = font.render(self.text, True, (0, 0, 0))
         text_surface = font.render(self.text, True, (255, 255, 255))
         text_rect = text_surface.get_rect(center=self.rect.center)
@@ -68,6 +65,8 @@ class Button:
         screen.blit(text_surface, text_rect)
 
     def handle_event(self, event):
+        if self.disabled:
+            return False
         if event.type == pygame.MOUSEMOTION:
             self.is_hovered = self.rect.collidepoint(event.pos)
         elif event.type == pygame.MOUSEBUTTONDOWN:
@@ -75,8 +74,6 @@ class Button:
                 return True
         return False
 
-
-# Классы для шахматных фигур и доски
 class Piece:
     def __init__(self, color, type, position):
         self.color = color
@@ -105,11 +102,11 @@ class ChessBoard:
         self.message_timer = 0
         self.moves_history = []
         self.current_save = None
-        self.valid_moves = []  # Добавляем список для хранения возможных ходов
-        self.captured_pieces = []  # Добавляем список для хранения съеденных фигур
-        self.game_over = False  # Добавляем переменную для отслеживания конца игры
+        self.valid_moves = []  # список для хранения возможных ходов
+        self.captured_pieces = []  # список для хранения съеденных фигур
+        self.game_over = False  # переменная для отслеживания конца игры
 
-        # Создаем кнопки
+        #кнопки
         button_width = 200
         button_height = 50
         container_width = 300
@@ -118,19 +115,20 @@ class ChessBoard:
 
         # Вычисляем начальную позицию для центрирования кнопок по вертикали
         container_height = 600  # Высота контейнера
-        total_buttons_height = (button_height + button_spacing) * 5 - button_spacing
+        total_buttons_height = (button_height + button_spacing) * 6 - button_spacing
         start_y = (container_height - total_buttons_height) // 2 + 200
 
         self.buttons = {
-            'new_game': Button(button_x, start_y, button_width, button_height, "Новая игра"),
-            'save_game': Button(button_x, start_y + button_height + button_spacing, button_width, button_height,
+            'login': Button(button_x, start_y, button_width, button_height, "Авторизация"),
+            'new_game': Button(button_x, start_y + button_height + button_spacing, button_width, button_height, "Новая игра"),
+            'save_game': Button(button_x, start_y + (button_height + button_spacing) * 2, button_width, button_height,
                                 "Сохранить игру"),
-            'load_game': Button(button_x, start_y + (button_height + button_spacing) * 2, button_width, button_height,
+            'load_game': Button(button_x, start_y + (button_height + button_spacing) * 3, button_width, button_height,
                                 "Загрузить игру"),
-            'instructions': Button(button_x, start_y + (button_height + button_spacing) * 3, button_width,
+            'instructions': Button(button_x, start_y + (button_height + button_spacing) * 4, button_width,
                                    button_height,
                                    "Инструкция"),
-            'exit': Button(button_x, start_y + (button_height + button_spacing) * 4, button_width, button_height,
+            'exit': Button(button_x, start_y + (button_height + button_spacing) * 5, button_width, button_height,
                            "Выход из игры")
         }
 
@@ -237,7 +235,6 @@ class ChessBoard:
         for piece in self.pieces.values():
             if piece.color != color:
                 if piece.type == "knight":
-                    # Для коня проверяем только возможность хода, без проверки препятствий
                     x_diff = abs(king_pos[0] - piece.position[0])
                     y_diff = abs(king_pos[1] - piece.position[1])
                     if (x_diff == 2 and y_diff == 1) or (x_diff == 1 and y_diff == 2):
@@ -271,7 +268,6 @@ class ChessBoard:
                     # Проверяем, остается ли король под шахом
                     still_in_check = self.is_check(color)
 
-                    # Возвращаем все назад
                     piece.move_to(original_pos)
                     if captured_piece and captured_key:
                         self.pieces[captured_key] = captured_piece
@@ -288,7 +284,6 @@ class ChessBoard:
             if piece.color == color:
                 valid_moves = self.get_valid_moves(piece)
                 for move in valid_moves:
-                    # Пробуем сделать ход
                     original_pos = piece.position
                     captured_piece = self.get_piece_at(move)
                     piece.move_to(move)
@@ -301,10 +296,8 @@ class ChessBoard:
                         if captured_key:
                             del self.pieces[captured_key]
 
-                    # Проверяем, не ставит ли этот ход короля под шах
                     legal_move = not self.is_check(color)
 
-                    # Возвращаем все назад
                     piece.move_to(original_pos)
                     if captured_piece and captured_key:
                         self.pieces[captured_key] = captured_piece
@@ -349,11 +342,9 @@ class ChessBoard:
             screen.blit(text, (
                 self.board_offset_x + i * tile_size + tile_size // 3, self.board_offset_y + 8 * tile_size + 5))
 
-            # Полоска сверху
             pygame.draw.rect(screen, (26, 7, 4),
                              (self.board_offset_x - 30, self.board_offset_y - 30, 8 * tile_size + 60, 30))
 
-            # Полоска справа
             pygame.draw.rect(screen, (26, 7, 4),
                              (self.board_offset_x + 8 * tile_size, self.board_offset_y - 30, 30, 8 * tile_size + 60))
 
@@ -363,11 +354,11 @@ class ChessBoard:
 
         # Отрисовка сообщений
         if self.message and self.message_timer > 0:
-            # Создаем полупрозрачный фон для сообщения
+            # полупрозрачный фон для сообщения
             message_surface = pygame.Surface((screen_width, 100), pygame.SRCALPHA)
             message_surface.fill((0, 0, 0, 128))  # Черный цвет с прозрачностью
 
-            # Отрисовываем текст сообщения с тенью
+            # текст сообщения с тенью
             text_shadow = font.render(self.message, True, (0, 0, 0))
             text_surface = font.render(self.message, True, (255, 255, 255))
             text_rect = text_surface.get_rect(center=(screen_width // 2, 50))
@@ -378,7 +369,6 @@ class ChessBoard:
             screen.blit(message_surface, (0, 0))
             self.message_timer -= 1
 
-        # Определяем размеры контейнеров
         container_width = 300
         container_height = screen_height - 400
         buttons_x = self.board_offset_x - container_width - 50
@@ -390,37 +380,30 @@ class ChessBoard:
 
         pygame.draw.rect(screen, (235, 235, 208),
                          (buttons_x, buttons_y, container_width, container_height))
-        pygame.draw.rect(screen, (26, 7, 4),  # Коричневый цвет
+        pygame.draw.rect(screen, (26, 7, 4),
                          (buttons_x, buttons_y, container_width, container_height), 6)
 
-        # Отрисовка заголовка "Шахматный эндшпиль" в две строки
         title_font = pygame.font.Font(None, 52)
         title_text_1 = title_font.render("Шахматный", True, (0, 0, 0))
         title_text_2 = title_font.render("эндшпиль", True, (0, 0, 0))
 
-        # Создаем прямоугольники для заголовков
         title_rect_1 = title_text_1.get_rect(center=(buttons_x + container_width // 2, buttons_y + 70))
         title_rect_2 = title_text_2.get_rect(center=(buttons_x + container_width // 2, buttons_y + 115))
 
-        # Отрисовываем заголовки с тенями для красоты
         shadow_offset = 2
         shadow_color = (150, 150, 150)
 
-        # Тень для первого заголовка
         shadow_rect_1 = title_rect_1.copy()
         shadow_rect_1.center = (title_rect_1.centerx + shadow_offset, title_rect_1.centery + shadow_offset)
         screen.blit(title_font.render("Шахматный", True, shadow_color), shadow_rect_1)
 
-        # Тень для второго заголовка
         shadow_rect_2 = title_rect_2.copy()
         shadow_rect_2.center = (title_rect_2.centerx + shadow_offset, title_rect_2.centery + shadow_offset)
         screen.blit(title_font.render("эндшпиль", True, shadow_color), shadow_rect_2)
 
-        # Основной текст заголовков
         screen.blit(title_text_1, title_rect_1)
         screen.blit(title_text_2, title_rect_2)
 
-        # Отрисовка кнопок
         for button in self.buttons.values():
             button.draw(screen)
 
@@ -428,7 +411,7 @@ class ChessBoard:
 
         pygame.draw.rect(screen, (235, 235, 208),
                          (moves_x, moves_y, container_width, container_height))
-        pygame.draw.rect(screen, (26, 7, 4),  # Коричневый цвет
+        pygame.draw.rect(screen, (26, 7, 4),
                          (moves_x, moves_y, container_width, container_height), 6)
 
         # Отображение текущего сохранения и хода в правом контейнере
@@ -458,7 +441,6 @@ class ChessBoard:
         history_text = font.render("История ходов:", True, (0, 0, 0))
         screen.blit(history_text, (moves_x + 10, moves_y + 120))
 
-        # Отображаем последние 11 ходов, используя прокрутку если нужно
         visible_moves = 11  # Количество видимых ходов
         start_index = max(0, len(self.moves_history) - visible_moves)
 
@@ -472,7 +454,6 @@ class ChessBoard:
         captured_x = moves_x + 10
         captured_y = moves_y + container_height - small_piece_size * 2 - 20
 
-        # Отрисовка заголовка для съеденных фигур
         captured_text = font.render("Съеденные фигуры:", True, (0, 0, 0))
         screen.blit(captured_text, (captured_x, captured_y - 30))
 
@@ -480,7 +461,6 @@ class ChessBoard:
         white_captured = [p for p in self.captured_pieces if p.color == "white"]
         black_captured = [p for p in self.captured_pieces if p.color == "black"]
 
-        # Отрисовка черных съеденных фигур
         for i, piece in enumerate(black_captured):
             if i < 8:  # Максимум 8 фигур в ряду
                 x = captured_x + i * small_piece_size
@@ -488,7 +468,6 @@ class ChessBoard:
                 small_image = pieces[f"{piece.color}_{piece.type}_small"]
                 screen.blit(small_image, (x, y))
 
-        # Отрисовка белых съеденных фигур
         for i, piece in enumerate(white_captured):
             if i < 8:  # Максимум 8 фигур в ряду
                 x = captured_x + i * small_piece_size
@@ -503,18 +482,18 @@ class ChessBoard:
             alpha = min(128, i // 16)
             pygame.draw.line(menu_surface, (70, 130, 180, alpha), (0, i), (screen_width, i))
 
-        menu_width = 800  # Увеличиваем ширину меню
+        menu_width = 800
         menu_height = 300
         menu_rect = pygame.Rect((screen_width - menu_width) // 2,
                                 (screen_height - menu_height) // 2,
                                 menu_width, menu_height)
 
-        piece_types = ["queen", "rook", "bishop", "knight"]  # Добавляем bishop и knight
+        piece_types = ["queen", "rook", "bishop", "knight"]
         piece_rects = []
         piece_size = tile_size
         spacing = 20
         total_width = len(piece_types) * piece_size + (len(piece_types) - 1) * spacing
-        start_x = menu_rect.centerx - total_width // 2 + 70  # Сдвигаем фигуры правее
+        start_x = menu_rect.centerx - total_width // 2 + 70
 
         for i, piece_type in enumerate(piece_types):
             piece_image = pieces[f"{pawn.color}_{piece_type}"]
@@ -525,10 +504,9 @@ class ChessBoard:
 
         selecting = True
         while selecting:
-            screen.blit(background, (0, 0))  # Отрисовка фона
+            screen.blit(background, (0, 0))
             screen.blit(menu_surface, (0, 0))
 
-            # Рисуем контейнер с обводкой
             pygame.draw.rect(screen, (235, 235, 208), menu_rect)
             pygame.draw.rect(screen, (26, 7, 4), menu_rect, 6)
 
@@ -536,7 +514,6 @@ class ChessBoard:
             title_rect = title.get_rect(center=(screen_width // 2, menu_rect.top + 30))
             screen.blit(title, title_rect)
 
-            # Отрисовка фигур
             for rect, piece_type in piece_rects:
                 screen.blit(pieces[f"{pawn.color}_{piece_type}"], rect)
 
@@ -600,24 +577,20 @@ class ChessBoard:
             self.show_message("Нет доступных сохранений!")
             return
 
-        # Создаем поверхность для меню загрузки с градиентным фоном
         menu_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
         for i in range(screen_height):
             alpha = min(128, i // 16)
             pygame.draw.line(menu_surface, (70, 130, 180, alpha), (0, i), (screen_width, i))
 
-        # Создаем контейнер для меню загрузки
         menu_width = 400
-        menu_height = len(saves) * 60 + 220  # Увеличиваем высоту для кнопок
+        menu_height = len(saves) * 60 + 220
         menu_rect = pygame.Rect((screen_width - menu_width) // 2,
                                 (screen_height - menu_height) // 2,
                                 menu_width, menu_height)
 
-        # Рисуем контейнер с обводкой
         pygame.draw.rect(menu_surface, (235, 235, 208), menu_rect)
         pygame.draw.rect(menu_surface, (26, 7, 4), menu_rect, 6)
 
-        # Добавляем заголовок
         title = font.render("Выберите нужное сохранение:", True, (0, 0, 0))
         title_rect = title.get_rect(center=(screen_width // 2, menu_rect.top + 30))
 
@@ -631,19 +604,17 @@ class ChessBoard:
                             200, button_height, save)
             save_buttons.append((button, save))
 
-        # Добавляем кнопку "Назад"
         back_button = Button(menu_rect.centerx - 100,
                              start_y + len(saves) * (button_height + button_spacing),
                              200, button_height, "Назад")
 
-        # Добавляем кнопку удаления всех сохранений
         delete_button = Button(menu_rect.centerx - 150,
                                start_y + len(saves) * (button_height + button_spacing) + button_height + button_spacing,
                                300, button_height, "Удалить все сохранения", (255, 0, 0))
 
         selecting = True
         while selecting:
-            screen.blit(background, (0, 0))  # Отрисовка фона
+            screen.blit(background, (0, 0))
             screen.blit(menu_surface, (0, 0))
             screen.blit(title, title_rect)
 
@@ -683,7 +654,6 @@ class ChessBoard:
                                 self.moves_history = game_state['moves_history']
                                 global current_turn
                                 current_turn = game_state.get('current_turn', 'white')
-                                # Загружаем съеденные фигуры
                                 self.captured_pieces = []
                                 if 'captured_pieces' in game_state:
                                     for color, type in game_state['captured_pieces']:
@@ -745,7 +715,6 @@ class ChessBoard:
         for x in range(8):
             for y in range(8):
                 if self.is_valid_move(piece, (x, y)):
-                    # Проверяем, не ставит ли этот ход короля под шах
                     original_pos = piece.position
                     captured_piece = self.get_piece_at((x, y))
                     piece.move_to((x, y))
@@ -762,7 +731,6 @@ class ChessBoard:
                     if not self.is_check(piece.color):
                         valid_moves.append((x, y))
 
-                    # Возвращаем все назад
                     piece.move_to(original_pos)
                     if captured_piece and captured_key:
                         self.pieces[captured_key] = captured_piece
@@ -796,10 +764,9 @@ class ChessBoard:
                             break
                     if captured_key:
                         del self.pieces[captured_key]
-                        self.captured_pieces.append(clicked_piece)  # Добавляем съеденную фигуру в список
+                        self.captured_pieces.append(clicked_piece)
                 self.add_move_to_history(selected_piece, start_pos, clicked_pos, captured)
 
-                # Проверяем превращение пешки
                 if selected_piece.type == "pawn":
                     if (selected_piece.color == "white" and clicked_pos[1] == 0) or \
                             (selected_piece.color == "black" and clicked_pos[1] == 7):
@@ -828,13 +795,12 @@ class ChessBoard:
             selected_piece = clicked_piece
             self.valid_moves = self.get_valid_moves(selected_piece)
 
-        # Проверка на наличие только двух королей
         if len(self.pieces) == 2 and all(piece.type == "king" for piece in self.pieces.values()):
             self.show_message("Пат! Ничья!")
             self.game_over = True
 
     def handle_events(self):
-        global selected_piece, current_turn
+        global selected_piece, current_turn, is_authenticated
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -842,17 +808,19 @@ class ChessBoard:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_pos = pygame.mouse.get_pos()
 
-                # Проверяем нажатия на кнопки
                 for button_name, button in self.buttons.items():
                     if button.handle_event(event):
-                        if button_name == 'new_game':
-                            # Сохраняем текущее состояние перед показом меню
+                        if button_name == 'login':
+                            self.show_login_menu()
+                            selected_piece = None
+                        elif button_name == 'new_game' and is_authenticated:
                             self.show_new_game_menu()
                             selected_piece = None
-
-                        elif button_name == 'save_game':
+                        elif button_name == 'new_game' and not is_authenticated:
+                            self.show_message("Для начала новой игры, пожалуйста, авторизуйтесь!")
+                        elif button_name == 'save_game' and is_authenticated:
                             self.save_game()
-                        elif button_name == 'load_game':
+                        elif button_name == 'load_game' and is_authenticated:
                             self.load_game()
                             selected_piece = None
                         elif button_name == 'instructions':
@@ -862,11 +830,9 @@ class ChessBoard:
                             sys.exit()
                         return
 
-                # Обработка кликов по доске
                 self.handle_click(mouse_pos)
 
             elif event.type == pygame.MOUSEMOTION:
-                # Обновление состояния наведения для кнопок
                 for button in self.buttons.values():
                     button.handle_event(event)
 
@@ -894,13 +860,11 @@ class ChessBoard:
             "gamedev Dmitriy Kazarov, 2024"
         ]
 
-        # Создаем поверхность для инструкций с градиентным фоном
         instruction_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
         for i in range(screen_height):
             alpha = min(128, i // 16)
             pygame.draw.line(instruction_surface, (70, 130, 180, alpha), (0, i), (screen_width, i))
 
-        # Создаем контейнер для инструкций
         container_width = 900
         container_height = 500
         container_rect = pygame.Rect((screen_width - container_width) // 2,
@@ -912,7 +876,6 @@ class ChessBoard:
             screen.blit(background, (0, 0))  # Отрисовка фона
             screen.blit(instruction_surface, (0, 0))
 
-            # Рисуем контейнер с обводкой
             pygame.draw.rect(screen, (235, 235, 208), container_rect)
             pygame.draw.rect(screen, (26, 7, 4), container_rect, 6)
 
@@ -932,7 +895,6 @@ class ChessBoard:
 
     def show_new_game_menu(self):
         global current_turn
-        # Сохраняем текущее состояние игры
         saved_state = {
             'pieces': self.pieces.copy(),
             'captured_pieces': self.captured_pieces.copy(),
@@ -941,20 +903,17 @@ class ChessBoard:
             'game_over': self.game_over
         }
 
-        # Создаем поверхность для меню новой игры с градиентным фоном
         menu_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
         for i in range(screen_height):
             alpha = min(128, i // 16)
             pygame.draw.line(menu_surface, (70, 130, 180, alpha), (0, i), (screen_width, i))
 
-        # Создаем контейнер для меню новой игры
-        menu_width = 800  # Увеличиваем ширину меню
+        menu_width = 800
         menu_height = 400
         menu_rect = pygame.Rect((screen_width - menu_width) // 2,
                                 (screen_height - menu_height) // 2,
                                 menu_width, menu_height)
 
-        # Опции для выбора
         options = {
             "Противник:": ["Игрок", "ПК"],
             "Сторона:": ["Белые", "Черные"],
@@ -970,10 +929,9 @@ class ChessBoard:
         selecting = True
         start_new_game = False
         while selecting:
-            screen.blit(background, (0, 0))  # Отрисовка фона
+            screen.blit(background, (0, 0))
             screen.blit(menu_surface, (0, 0))
 
-            # Рисуем контейнер с обводкой
             pygame.draw.rect(screen, (235, 235, 208), menu_rect)
             pygame.draw.rect(screen, (100, 100, 100), menu_rect, 2)
 
@@ -981,21 +939,17 @@ class ChessBoard:
             title_rect = title.get_rect(center=(screen_width // 2, menu_rect.top + 30))
             screen.blit(title, title_rect)
 
-            # Отрисовка опций
             for i, (option, values) in enumerate(options.items()):
                 option_text = font.render(option, True, (0, 0, 0))
                 screen.blit(option_text, (menu_rect.left + 50, menu_rect.top + 80 + i * 80))
 
                 for j, value in enumerate(values):
                     value_text = font.render(value, True, (0, 0, 0) if selected_options[option] != j else (255, 0, 0))
-                    # Перемещение кнопок выбора команды, набора фигур и тд
                     screen.blit(value_text, (menu_rect.left + 250 + j * 200, menu_rect.top + 80 + i * 80))
 
-            # Отрисовка кнопки "Начать игру"
             start_button = Button(menu_rect.centerx - 5, menu_rect.bottom - 70, 200, 50, "Начать игру")
             start_button.draw(screen)
 
-            # Отрисовка кнопки "Назад"
             back_button = Button(menu_rect.centerx - 240, menu_rect.bottom - 70, 200, 50, "Назад")
             back_button.draw(screen)
 
@@ -1011,7 +965,6 @@ class ChessBoard:
                         start_new_game = True
                         selecting = False
                     elif back_button.rect.collidepoint(mouse_pos):
-                        # Восстанавливаем сохраненное состояние игры
                         self.pieces = saved_state['pieces']
                         self.captured_pieces = saved_state['captured_pieces']
                         self.moves_history = saved_state['moves_history']
@@ -1028,7 +981,6 @@ class ChessBoard:
 
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_ESCAPE:
-                        # Восстанавливаем сохраненное состояние игры
                         self.pieces = saved_state['pieces']
                         self.captured_pieces = saved_state['captured_pieces']
                         self.moves_history = saved_state['moves_history']
@@ -1049,6 +1001,270 @@ class ChessBoard:
             self.captured_pieces = []  # Удаляем съеденные фигуры
             self.game_over = False  # Сбрасываем состояние конца игры
             current_turn = "white"  # Сбрасываем ход
+
+    def show_login_menu(self):
+        global is_authenticated
+        menu_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+        for i in range(screen_height):
+            alpha = min(128, i // 16)
+            pygame.draw.line(menu_surface, (70, 130, 180, alpha), (0, i), (screen_width, i))
+
+        menu_width = 500
+        menu_height = 400
+        menu_rect = pygame.Rect((screen_width - menu_width) // 2,
+                                (screen_height - menu_height) // 2,
+                                menu_width, menu_height)
+
+        pygame.draw.rect(menu_surface, (235, 235, 208), menu_rect)
+        pygame.draw.rect(menu_surface, (26, 7, 4), menu_rect, 6)
+
+        title = font.render("Авторизация", True, (0, 0, 0))
+        title_rect = title.get_rect(center=(screen_width // 2, menu_rect.top + 30))
+
+        username_input = ""
+        password_input = ""
+        active_input = None
+
+        login_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 70, 250, 50, "Войти")
+        register_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 130, 250, 50, "Регистрация")
+        back_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 190, 250, 50, "Назад")
+
+        selecting = True
+        message = ""
+        message_timer = 0
+        while selecting:
+            screen.blit(background, (0, 0))
+            screen.blit(menu_surface, (0, 0))
+            screen.blit(title, title_rect)
+
+            username_text = font.render("Никнейм:", True, (0, 0, 0))
+            screen.blit(username_text, (menu_rect.left + 20, menu_rect.top + 80))
+            username_input_rect = pygame.Rect(menu_rect.left + 150, menu_rect.top + 80, 300, 30)
+            pygame.draw.rect(screen, (255, 255, 255), username_input_rect)
+            pygame.draw.rect(screen, (0, 0, 0), username_input_rect, 2)
+            if active_input == "username":
+                pygame.draw.rect(screen, (0, 255, 0), username_input_rect, 2)
+            username_surface = font.render(username_input, True, (0, 0, 0))
+            screen.blit(username_surface, (username_input_rect.x + 5, username_input_rect.y + 5))
+
+            password_text = font.render("Пароль:", True, (0, 0, 0))
+            screen.blit(password_text, (menu_rect.left + 20, menu_rect.top + 130))
+            password_input_rect = pygame.Rect(menu_rect.left + 150, menu_rect.top + 130, 300, 30)
+            pygame.draw.rect(screen, (255, 255, 255), password_input_rect)
+            pygame.draw.rect(screen, (0, 0, 0), password_input_rect, 2)
+            if active_input == "password":
+                pygame.draw.rect(screen, (0, 255, 0), password_input_rect, 2)
+            password_surface = font.render("*" * len(password_input), True, (0, 0, 0))
+            screen.blit(password_surface, (password_input_rect.x + 5, password_input_rect.y + 5))
+
+            login_button.draw(screen)
+            register_button.draw(screen)
+            back_button.draw(screen)
+
+            if message and message_timer > 0:
+                message_surface = pygame.Surface((screen_width, 100), pygame.SRCALPHA)
+                message_surface.fill((0, 0, 0, 128))
+                text_shadow = font.render(message, True, (0, 0, 0))
+                text_surface = font.render(message, True, (255, 255, 255))
+                text_rect = text_surface.get_rect(center=(screen_width // 2, 50))
+                screen.blit(message_surface, (0, 0))
+                screen.blit(text_shadow, (text_rect.x + 2, text_rect.y + 2))
+                screen.blit(text_surface, text_rect)
+                message_timer -= 1
+
+            pygame.display.flip()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if username_input_rect.collidepoint(event.pos):
+                        active_input = "username"
+                    elif password_input_rect.collidepoint(event.pos):
+                        active_input = "password"
+                    elif login_button.rect.collidepoint(event.pos):
+                        if self.authenticate(username_input, password_input):
+                            is_authenticated = True
+                            self.buttons['login'].disabled = True
+                            self.message = f"Добрый день, {username_input}!"
+                            self.message_timer = 180
+                            selecting = False
+                        else:
+                            message = "Неверный логин или пароль!"
+                            message_timer = 180
+                    elif register_button.rect.collidepoint(event.pos):
+                        self.show_register_menu()
+                        selecting = False
+                    elif back_button.rect.collidepoint(event.pos):
+                        selecting = False
+                elif event.type == pygame.KEYDOWN:
+                    if active_input == "username":
+                        if event.key == pygame.K_BACKSPACE:
+                            username_input = username_input[:-1]
+                        else:
+                            username_input += event.unicode
+                    elif active_input == "password":
+                        if event.key == pygame.K_BACKSPACE:
+                            password_input = password_input[:-1]
+                        else:
+                            password_input += event.unicode
+
+    def show_register_menu(self):
+        menu_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
+        for i in range(screen_height):
+            alpha = min(128, i // 16)
+            pygame.draw.line(menu_surface, (70, 130, 180, alpha), (0, i), (screen_width, i))
+
+        menu_width = 500
+        menu_height = 400
+        menu_rect = pygame.Rect((screen_width - menu_width) // 2,
+                                (screen_height - menu_height) // 2,
+                                menu_width, menu_height)
+
+        pygame.draw.rect(menu_surface, (235, 235, 208), menu_rect)
+        pygame.draw.rect(menu_surface, (26, 7, 4), menu_rect, 6)
+
+        title = font.render("Регистрация", True, (0, 0, 0))
+        title_rect = title.get_rect(center=(screen_width // 2, menu_rect.top + 30))
+
+        username_input = ""
+        password_input = ""
+        active_input = None
+
+        register_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 70, 250, 50, "Зарегистрироваться")
+        back_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 130, 250, 50, "Назад")
+
+        selecting = True
+        message = ""
+        message_timer = 0
+        while selecting:
+            screen.blit(background, (0, 0))
+            screen.blit(menu_surface, (0, 0))
+            screen.blit(title, title_rect)
+
+            username_text = font.render("Никнейм:", True, (0, 0, 0))
+            screen.blit(username_text, (menu_rect.left + 20, menu_rect.top + 80))
+            username_input_rect = pygame.Rect(menu_rect.left + 150, menu_rect.top + 80, 300, 30)
+            pygame.draw.rect(screen, (255, 255, 255), username_input_rect)
+            pygame.draw.rect(screen, (0, 0, 0), username_input_rect, 2)
+            if active_input == "username":
+                pygame.draw.rect(screen, (0, 255, 0), username_input_rect, 2)
+            username_surface = font.render(username_input, True, (0, 0, 0))
+            screen.blit(username_surface, (username_input_rect.x + 5, username_input_rect.y + 5))
+
+            password_text = font.render("Пароль:", True, (0, 0, 0))
+            screen.blit(password_text, (menu_rect.left + 20, menu_rect.top + 130))
+            password_input_rect = pygame.Rect(menu_rect.left + 150, menu_rect.top + 130, 300, 30)
+            pygame.draw.rect(screen, (255, 255, 255), password_input_rect)
+            pygame.draw.rect(screen, (0, 0, 0), password_input_rect, 2)
+            if active_input == "password":
+                pygame.draw.rect(screen, (0, 255, 0), password_input_rect, 2)
+            password_surface = font.render("*" * len(password_input), True, (0, 0, 0))
+            screen.blit(password_surface, (password_input_rect.x + 5, password_input_rect.y + 5))
+
+            register_button.draw(screen)
+            back_button.draw(screen)
+
+            if message and message_timer > 0:
+                message_surface = pygame.Surface((screen_width, 100), pygame.SRCALPHA)
+                message_surface.fill((0, 0, 0, 128))
+                text_shadow = font.render(message, True, (0, 0, 0))
+                text_surface = font.render(message, True, (255, 255, 255))
+                text_rect = text_surface.get_rect(center=(screen_width // 2, 50))
+                screen.blit(message_surface, (0, 0))
+                screen.blit(text_shadow, (text_rect.x + 2, text_rect.y + 2))
+                screen.blit(text_surface, text_rect)
+                message_timer -= 1
+
+            pygame.display.flip()
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    pygame.quit()
+                    sys.exit()
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if username_input_rect.collidepoint(event.pos):
+                        active_input = "username"
+                    elif password_input_rect.collidepoint(event.pos):
+                        active_input = "password"
+                    elif register_button.rect.collidepoint(event.pos):
+                        if len(password_input) < 5:
+                            message = "Пароль должен содержать минимум 5 символов!"
+                            message_timer = 180
+                        elif self.is_username_taken(username_input):
+                            message = "Данный пользователь уже зарегистрирован"
+                            message_timer = 180
+                        else:
+                            self.register(username_input, password_input)
+                            self.show_message(f"Добрый день, {username_input}!", 180)
+                            selecting = False
+                    elif back_button.rect.collidepoint(event.pos):
+                        selecting = False
+                elif event.type == pygame.KEYDOWN:
+                    if active_input == "username":
+                        if event.key == pygame.K_BACKSPACE:
+                            username_input = username_input[:-1]
+                        else:
+                            username_input += event.unicode
+                    elif active_input == "password":
+                        if event.key == pygame.K_BACKSPACE:
+                            password_input = password_input[:-1]
+                        else:
+                            password_input += event.unicode
+
+    def authenticate(self, username, password):
+        try:
+            with open('users.json', 'r') as f:
+                users = json.load(f)
+            if username in users:
+                hashed_password = hashlib.sha256(password.encode()).hexdigest()
+                return users[username]['password'] == hashed_password
+        except FileNotFoundError:
+            return False
+        except json.JSONDecodeError:
+            return False
+        return False
+
+    def is_username_taken(self, username):
+        try:
+            with open('users.json', 'r') as f:
+                users = json.load(f)
+            return username in users
+        except FileNotFoundError:
+            return False
+        except json.JSONDecodeError:
+            return False
+
+    def register(self, username, password):
+        try:
+            with open('users.json', 'r') as f:
+                users = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            users = {}
+
+        hashed_password = hashlib.sha256(password.encode()).hexdigest()
+        users[username] = {'password': hashed_password}
+
+        with open('users.json', 'w') as f:
+            json.dump(users, f)
+
+    def draw_message(self, screen):
+        if self.message and self.message_timer > 0:
+            # полупрозрачный фон для сообщения
+            message_surface = pygame.Surface((screen_width, 100), pygame.SRCALPHA)
+            message_surface.fill((0, 0, 0, 128))  # Черный цвет с прозрачностью
+
+            # текст сообщения с тенью
+            text_shadow = font.render(self.message, True, (0, 0, 0))
+            text_surface = font.render(self.message, True, (255, 255, 255))
+            text_rect = text_surface.get_rect(center=(screen_width // 2, 50))
+            message_surface.blit(text_shadow, (text_rect.x + 4, text_rect.y + 4))
+            message_surface.blit(text_surface, text_rect)
+
+            # Отображаем сообщение на экране
+            screen.blit(message_surface, (0, 0))
+            self.message_timer -= 1
 
 def main():
     board = ChessBoard()
