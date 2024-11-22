@@ -114,7 +114,7 @@ class ChessBoard:
         button_spacing = 20
 
         # Вычисляем начальную позицию для центрирования кнопок по вертикали
-        container_height = 600  # Высота контейнера
+        container_height = 700  # Высота контейнера
         total_buttons_height = (button_height + button_spacing) * 6 - button_spacing
         start_y = (container_height - total_buttons_height) // 2 + 200
 
@@ -427,7 +427,7 @@ class ChessBoard:
 
         elif not self.game_over:
             if not self.pieces:
-                turn_text = font.render("Начните новую игру!", True, (0, 0, 0))
+                turn_text = font.render("Добро пожаловать!", True, (0, 0, 0))
             else:
                 turn_text = font.render(
                     f"Ход {'белых' if current_turn == 'white' else 'черных'}",
@@ -820,9 +820,13 @@ class ChessBoard:
                             self.show_message("Для начала новой игры, пожалуйста, авторизуйтесь!")
                         elif button_name == 'save_game' and is_authenticated:
                             self.save_game()
+                        elif button_name == 'save_game' and not is_authenticated:
+                            self.show_message("Нечего сохранять!")
                         elif button_name == 'load_game' and is_authenticated:
                             self.load_game()
                             selected_piece = None
+                        elif button_name == 'load_game' and not is_authenticated:
+                            self.show_message("Для загрузки игры, пожалуйста, авторизуйтесь!")
                         elif button_name == 'instructions':
                             self.show_instructions()
                         elif button_name == 'exit':
@@ -1025,9 +1029,9 @@ class ChessBoard:
         password_input = ""
         active_input = None
 
-        login_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 70, 250, 50, "Войти")
+        login_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 190, 250, 50, "Войти")
         register_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 130, 250, 50, "Регистрация")
-        back_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 190, 250, 50, "Назад")
+        back_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 70, 250, 50, "Назад")
 
         selecting = True
         message = ""
@@ -1042,9 +1046,7 @@ class ChessBoard:
             username_input_rect = pygame.Rect(menu_rect.left + 150, menu_rect.top + 80, 300, 30)
             pygame.draw.rect(screen, (255, 255, 255), username_input_rect)
             pygame.draw.rect(screen, (0, 0, 0), username_input_rect, 2)
-            if active_input == "username":
-                pygame.draw.rect(screen, (0, 255, 0), username_input_rect, 2)
-            username_surface = font.render(username_input, True, (0, 0, 0))
+            username_surface = font.render(username_input + ('|' if active_input == "username" else ''), True, (0, 0, 0))
             screen.blit(username_surface, (username_input_rect.x + 5, username_input_rect.y + 5))
 
             password_text = font.render("Пароль:", True, (0, 0, 0))
@@ -1052,9 +1054,7 @@ class ChessBoard:
             password_input_rect = pygame.Rect(menu_rect.left + 150, menu_rect.top + 130, 300, 30)
             pygame.draw.rect(screen, (255, 255, 255), password_input_rect)
             pygame.draw.rect(screen, (0, 0, 0), password_input_rect, 2)
-            if active_input == "password":
-                pygame.draw.rect(screen, (0, 255, 0), password_input_rect, 2)
-            password_surface = font.render("*" * len(password_input), True, (0, 0, 0))
+            password_surface = font.render("*" * len(password_input) + ('|' if active_input == "password" else ''), True, (0, 0, 0))
             screen.blit(password_surface, (password_input_rect.x + 5, password_input_rect.y + 5))
 
             login_button.draw(screen)
@@ -1102,12 +1102,12 @@ class ChessBoard:
                     if active_input == "username":
                         if event.key == pygame.K_BACKSPACE:
                             username_input = username_input[:-1]
-                        else:
+                        elif event.key not in [pygame.K_ESCAPE, pygame.K_TAB, pygame.K_DELETE, pygame.K_SPACE]:
                             username_input += event.unicode
                     elif active_input == "password":
                         if event.key == pygame.K_BACKSPACE:
                             password_input = password_input[:-1]
-                        else:
+                        elif event.key not in [pygame.K_ESCAPE, pygame.K_TAB, pygame.K_DELETE, pygame.K_SPACE]:
                             password_input += event.unicode
 
     def show_register_menu(self):
@@ -1132,8 +1132,8 @@ class ChessBoard:
         password_input = ""
         active_input = None
 
-        register_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 70, 250, 50, "Зарегистрироваться")
-        back_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 130, 250, 50, "Назад")
+        register_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 130, 250, 50, "Зарегистрироваться")
+        back_button = Button(menu_rect.centerx - 125, menu_rect.bottom - 70, 250, 50, "Назад")
 
         selecting = True
         message = ""
@@ -1148,9 +1148,7 @@ class ChessBoard:
             username_input_rect = pygame.Rect(menu_rect.left + 150, menu_rect.top + 80, 300, 30)
             pygame.draw.rect(screen, (255, 255, 255), username_input_rect)
             pygame.draw.rect(screen, (0, 0, 0), username_input_rect, 2)
-            if active_input == "username":
-                pygame.draw.rect(screen, (0, 255, 0), username_input_rect, 2)
-            username_surface = font.render(username_input, True, (0, 0, 0))
+            username_surface = font.render(username_input + ('|' if active_input == "username" else ''), True, (0, 0, 0))
             screen.blit(username_surface, (username_input_rect.x + 5, username_input_rect.y + 5))
 
             password_text = font.render("Пароль:", True, (0, 0, 0))
@@ -1158,9 +1156,7 @@ class ChessBoard:
             password_input_rect = pygame.Rect(menu_rect.left + 150, menu_rect.top + 130, 300, 30)
             pygame.draw.rect(screen, (255, 255, 255), password_input_rect)
             pygame.draw.rect(screen, (0, 0, 0), password_input_rect, 2)
-            if active_input == "password":
-                pygame.draw.rect(screen, (0, 255, 0), password_input_rect, 2)
-            password_surface = font.render("*" * len(password_input), True, (0, 0, 0))
+            password_surface = font.render("*" * len(password_input) + ('|' if active_input == "password" else ''), True, (0, 0, 0))
             screen.blit(password_surface, (password_input_rect.x + 5, password_input_rect.y + 5))
 
             register_button.draw(screen)
@@ -1189,7 +1185,10 @@ class ChessBoard:
                     elif password_input_rect.collidepoint(event.pos):
                         active_input = "password"
                     elif register_button.rect.collidepoint(event.pos):
-                        if len(password_input) < 5:
+                        if len(username_input) < 5:
+                            message = "Никнейм должен содержать минимум 5 символов!"
+                            message_timer = 180
+                        elif len(password_input) < 5:
                             message = "Пароль должен содержать минимум 5 символов!"
                             message_timer = 180
                         elif self.is_username_taken(username_input):
@@ -1197,7 +1196,7 @@ class ChessBoard:
                             message_timer = 180
                         else:
                             self.register(username_input, password_input)
-                            self.show_message(f"Добрый день, {username_input}!", 180)
+                            self.show_message(f"Добро пожаловать, {username_input}! Пожалуйста, авторизуйтесь!", 180)
                             selecting = False
                     elif back_button.rect.collidepoint(event.pos):
                         selecting = False
@@ -1205,12 +1204,12 @@ class ChessBoard:
                     if active_input == "username":
                         if event.key == pygame.K_BACKSPACE:
                             username_input = username_input[:-1]
-                        else:
+                        elif event.key not in [pygame.K_ESCAPE, pygame.K_TAB, pygame.K_DELETE, pygame.K_SPACE]:
                             username_input += event.unicode
                     elif active_input == "password":
                         if event.key == pygame.K_BACKSPACE:
                             password_input = password_input[:-1]
-                        else:
+                        elif event.key not in [pygame.K_ESCAPE, pygame.K_TAB, pygame.K_DELETE, pygame.K_SPACE]:
                             password_input += event.unicode
 
     def authenticate(self, username, password):
