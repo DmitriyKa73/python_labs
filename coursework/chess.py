@@ -43,6 +43,7 @@ pieces = load_images()
 is_authenticated = False
 play_against_pc = False
 player_color = "white"
+current_user = None
 
 
 class Button:
@@ -544,7 +545,8 @@ class ChessBoard:
                             return
 
     def get_next_save_number(self):
-        existing_saves = [f for f in os.listdir() if f.startswith('save') and f.endswith('.json')]
+        user_save_dir = os.path.join('saves', current_user)
+        existing_saves = [f for f in os.listdir(user_save_dir) if f.startswith('save') and f.endswith('.json')]
         if not existing_saves:
             return 1
         numbers = [int(f.replace('save', '').replace('.json', '')) for f in existing_saves]
@@ -553,9 +555,10 @@ class ChessBoard:
         return next_number
 
     def delete_all_saves(self):
-        saves = [f for f in os.listdir() if f.startswith('save') and f.endswith('.json')]
+        user_save_dir = os.path.join('saves', current_user)
+        saves = [f for f in os.listdir(user_save_dir) if f.startswith('save') and f.endswith('.json')]
         for save in saves:
-            os.remove(save)
+            os.remove(os.path.join(user_save_dir, save))
         self.current_save = None
         self.show_message("Все сохранения удалены!")
 
@@ -564,8 +567,12 @@ class ChessBoard:
             self.show_message("Нечего сохранять!")
             return
 
+        user_save_dir = os.path.join('saves', current_user)
+        if not os.path.exists(user_save_dir):
+            os.makedirs(user_save_dir)
+
         save_number = self.get_next_save_number()
-        filename = f'save{save_number}.json'
+        filename = os.path.join(user_save_dir, f'save{save_number}.json')
         game_state = {
             'pieces': [(p.color, p.type, p.position) for p in self.pieces.values()],
             'moves_history': self.moves_history,
@@ -583,7 +590,8 @@ class ChessBoard:
             self.show_message(f"Сохранено в {filename} Дальнейшие сохранения будут в save1.json. Очистите память")
 
     def load_game(self):
-        saves = [f for f in os.listdir() if f.startswith('save') and f.endswith('.json')]
+        user_save_dir = os.path.join('saves', current_user)
+        saves = [f for f in os.listdir(user_save_dir) if f.startswith('save') and f.endswith('.json')]
         if not saves:
             self.show_message("Нет доступных сохранений!")
             return
@@ -653,7 +661,7 @@ class ChessBoard:
                     for button, save_file in save_buttons:
                         if button.rect.collidepoint(event.pos):
                             try:
-                                with open(save_file, 'r') as f:
+                                with open(os.path.join(user_save_dir, save_file), 'r') as f:
                                     game_state = json.load(f)
                                 self.pieces = {}
                                 for color, type, position in game_state['pieces']:
@@ -1044,7 +1052,7 @@ class ChessBoard:
             player_color = "white" if selected_options["Сторона:"] == 0 else "black"  # Устанавливаем цвет игрока
 
     def show_login_menu(self):
-        global is_authenticated
+        global is_authenticated, current_user
         menu_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
         for i in range(screen_height):
             alpha = min(128, i // 16)
@@ -1125,6 +1133,7 @@ class ChessBoard:
                     elif login_button.rect.collidepoint(event.pos):
                         if self.authenticate(username_input, password_input):
                             is_authenticated = True
+                            current_user = username_input
                             self.buttons['login'].disabled = True
                             self.message = f"Добрый день, {username_input}!"
                             self.message_timer = 180
