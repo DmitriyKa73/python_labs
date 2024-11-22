@@ -1298,6 +1298,11 @@ class ChessBoard:
         with open('users.json', 'w') as f:
             json.dump(users, f)
 
+        # Create user save directory
+        user_save_dir = os.path.join('saves', username)
+        if not os.path.exists(user_save_dir):
+            os.makedirs(user_save_dir)
+
     def draw_message(self, screen):
         if self.message and self.message_timer > 0:
             message_surface = pygame.Surface((screen_width, 100), pygame.SRCALPHA)
@@ -1366,7 +1371,6 @@ class ChessBoard:
                 score += value
             else:
                 score -= value
-
         return score
 
     def get_best_move(self, depth, color, alpha=float('-inf'), beta=float('inf')):
@@ -1448,9 +1452,9 @@ class ChessBoard:
 
         return best_move, best_value
 
+
     def get_best_promotion(self, piece, move):
         return 'queen'
-
 
 def main():
     global play_against_pc, current_turn, player_color
@@ -1491,7 +1495,6 @@ def main():
         board.draw(screen)
         pygame.display.flip()
         clock.tick(60)
-
 
 if __name__ == "__main__":
     main()
