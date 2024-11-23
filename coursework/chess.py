@@ -23,6 +23,7 @@ background = pygame.transform.scale(background, (screen_width, screen_height))
 move_sound = pygame.mixer.Sound("assets/soundChess.mp3")
 move_sound.set_volume(0.5)  # Устанавливаем громкость звука на 50%
 
+
 def load_images():
     pieces = {}
     for color in ["black", "white"]:
@@ -31,6 +32,7 @@ def load_images():
             pieces[f"{color}_{piece}"] = pygame.transform.scale(image, (tile_size, tile_size))
             pieces[f"{color}_{piece}_small"] = pygame.transform.scale(image, (tile_size // 2, tile_size // 2))
     return pieces
+
 
 # Шахматная доска
 board_color_1 = (235, 235, 208)
@@ -46,6 +48,7 @@ is_authenticated = False
 play_against_pc = False
 player_color = "white"
 current_user = None
+
 
 class Button:
     def __init__(self, x, y, width, height, text, color=None):
@@ -81,6 +84,7 @@ class Button:
                 return True
         return False
 
+
 class Piece:
     def __init__(self, color, type, position):
         self.color = color
@@ -98,6 +102,7 @@ class Piece:
     def move_to(self, new_position):
         self.position = new_position
         self.has_moved = True
+
 
 class ChessBoard:
     def __init__(self):
@@ -673,7 +678,8 @@ class ChessBoard:
                                 self.moves_history = game_state['moves_history']
                                 global current_turn, play_against_pc, player_color
                                 current_turn = game_state.get('current_turn', 'white')
-                                play_against_pc = game_state.get('play_against_pc', False)  # Загружаем режим игры против ПК
+                                play_against_pc = game_state.get('play_against_pc',
+                                                                 False)  # Загружаем режим игры против ПК
                                 player_color = game_state.get('player_color', 'white')  # Загружаем цвет игрока
                                 self.captured_pieces = []
                                 if 'captured_pieces' in game_state:
@@ -731,6 +737,7 @@ class ChessBoard:
                 return x_diff == 0 and (new_pos[1] - piece.position[1]) == direction and y_diff == 1
 
         return False
+
     def get_valid_moves(self, piece):
         valid_moves = []
         for x in range(8):
@@ -1323,58 +1330,81 @@ class ChessBoard:
         piece_values = {
             'king': 1000,
             'queen': 90,
-            'rook': 50,
+            'rook': 60,
             'bishop': 30,
             'knight': 30,
-            'pawn': 10
+            'pawn': 45  # Увеличена базовая ценность пешек
         }
 
         score = 0
+
+        # Подсчет пешек
+        white_pawns = len([p for p in self.pieces.values() if p.type == 'pawn' and p.color == 'white'])
+        black_pawns = len([p for p in self.pieces.values() if p.type == 'pawn' and p.color == 'black'])
+
         for piece in list(self.pieces.values()):
             value = piece_values[piece.type]
 
-            # Увеличиваем ценность центральных позиций
-            if 2 <= piece.position[0] <= 5 and 2 <= piece.position[1] <= 5:
-                value *= 1.3
+            # Приоритет развития пешек в начале игры
+            if piece.type == 'pawn':
+                if (white_pawns > 0 and piece.color == 'white') or (black_pawns > 0 and piece.color == 'black'):
+                    value *= 2  # Удвоенная ценность пешек
 
-            # Оцениваем угрозы королю противника
+                    # Бонус за продвижение к центру в начале игры
+                    if 2 <= piece.position[0] <= 5:
+                        if piece.color == 'white' and piece.position[1] > 4:
+                            value *= 1.5
+                        elif piece.color == 'black' and piece.position[1] < 3:
+                            value *= 1.5
+
+            # Оценка позиции для мата
             if piece.type != 'king':
                 for enemy in list(self.pieces.values()):
                     if enemy.color != piece.color and enemy.type == 'king':
-                        dist = ((enemy.position[0] - piece.position[0]) ** 2 +
-                                (enemy.position[1] - piece.position[1]) ** 2) ** 0.5
+                        dist = abs(enemy.position[0] - piece.position[0]) + abs(enemy.position[1] - piece.position[1])
                         if dist <= 2:
-                            value *= 2.0  # Увеличиваем приоритет шаха
+                            value *= 3.0  # Увеличен множитель за близость к королю
+                        elif dist <= 4:
+                            value *= 1.5  # Бонус за фигуры в средней близости к королю
 
-                        # Добавляем бонус за мат
-                        if self.is_checkmate(enemy.color):
-                            value *= 10.0
-
-            # Защита короля
+            # Защита своего короля
             if piece.type == 'king':
-                exposed = True
-                protectors = 0
-                for friendly in list(self.pieces.values()):
-                    if friendly != piece and friendly.color == piece.color:
-                        dist = ((friendly.position[0] - piece.position[0]) ** 2 +
-                                (friendly.position[1] - piece.position[1]) ** 2) ** 0.5
-                        if dist <= 1:
-                            exposed = False
-                            protectors += 1
-                if exposed:
-                    value *= 0.5
-                value *= (1 + 0.1 * protectors)
+                protectors = sum(1 for p in self.pieces.values()
+                                 if p.color == piece.color and p != piece
+                                 and abs(p.position[0] - piece.position[0]) + abs(
+                    p.position[1] - piece.position[1]) <= 1)
+                value *= (1 + 0.2 * protectors)  # Увеличен бонус за защиту
 
-            # Добавляем бонус за возможность взятия фигур
-            for enemy in list(self.pieces.values()):
-                if enemy.color != piece.color:
-                    if (enemy.position[0], enemy.position[1]) in self.get_valid_moves(piece):
-                        value += piece_values[enemy.type] * 1.5
+            # Улучшенное развитие пешек
+            if piece.type == 'pawn':
+                if piece.color == 'white':
+                    value += (7 - piece.position[1]) * 5  # Увеличен бонус за продвижение
+                    if 2 <= piece.position[0] <= 5:
+                        value += 10  # Увеличен бонус за центральные пешки
+                    for other_pawn in [p for p in self.pieces.values() if
+                                       p.type == 'pawn' and p.color == 'white' and p != piece]:
+                        if piece.position[0] == other_pawn.position[0]:
+                            value -= 10  # Увеличен штраф за сдвоенные пешки
+                else:
+                    value += piece.position[1] * 5
+                    if 2 <= piece.position[0] <= 5:
+                        value += 10
+                    for other_pawn in [p for p in self.pieces.values() if
+                                       p.type == 'pawn' and p.color == 'black' and p != piece]:
+                        if piece.position[0] == other_pawn.position[0]:
+                            value -= 10
 
             if piece.color == 'white':
                 score += value
             else:
                 score -= value
+
+        # Дополнительный бонус за мат
+        if self.is_checkmate('black'):
+            score += 10000
+        elif self.is_checkmate('white'):
+            score -= 10000
+
         return score
 
     def get_best_move(self, depth, color, alpha=float('-inf'), beta=float('inf')):
@@ -1387,29 +1417,42 @@ class ChessBoard:
         else:
             best_value = float('inf')
 
-        piece_values = {
+        self.piece_values = {
             'king': 1000,
             'queen': 90,
-            'rook': 50,
+            'rook': 60,
             'bishop': 30,
             'knight': 30,
-            'pawn': 10
+            'pawn': 45  # Увеличена базовая ценность пешек
         }
 
         pieces = [p for p in self.pieces.values() if p.color == color]
-        # Сортируем фигуры по их ценности
-        pieces.sort(key=lambda p: piece_values[p.type], reverse=True)
+
+        # Приоритизация пешек в начале игры
+        pawns = [p for p in pieces if p.type == 'pawn']
+        other_pieces = [p for p in pieces if p.type != 'pawn']
+
+        if len(pawns) > 0:  # Если есть пешки
+            pieces = pawns + other_pieces  # Сначала рассматриваем ходы пешками
+
+        # Сортировка фигур по важности
+        pieces.sort(key=lambda p: (self.piece_values[p.type] +
+                                   (30 if p.type == 'pawn' and ((p.color == 'white' and p.position[1] <= 1) or
+                                                                (p.color == 'black' and p.position[1] >= 6)) else 0)),
+                    reverse=True)
 
         for piece in pieces:
             valid_moves = self.get_valid_moves(piece)
+            valid_moves = sorted(valid_moves,
+                                 key=lambda m: self._move_priority(piece, m),
+                                 reverse=True)
+
             for move in valid_moves:
                 target_piece = self.get_piece_at(move)
 
-                # Сохраняем состояние
                 original_pos = piece.position
                 original_pieces = self.pieces.copy()
 
-                # Делаем ход
                 piece.move_to(move)
                 if target_piece:
                     target_key = None
@@ -1420,26 +1463,23 @@ class ChessBoard:
                     if target_key:
                         del self.pieces[target_key]
 
-                # Превращение пешки
                 was_promoted = False
                 if piece.type == 'pawn':
                     if (color == 'white' and move[1] == 0) or (color == 'black' and move[1] == 7):
                         piece.type = 'queen'
                         was_promoted = True
 
-                # Рекурсивно оцениваем позицию
-                if depth > 1:
-                    _, evaluation = self.get_best_move(depth - 1, 'black' if color == 'white' else 'white', alpha, beta)
+                # Увеличиваем глубину для важных ходов
+                if self.is_check(color) or target_piece or was_promoted:
+                    _, evaluation = self.get_best_move(depth + 1, 'black' if color == 'white' else 'white', alpha, beta)
                 else:
-                    evaluation = self.evaluate_board()
+                    _, evaluation = self.get_best_move(depth - 1, 'black' if color == 'white' else 'white', alpha, beta)
 
-                # Возвращаем состояние
                 if was_promoted:
                     piece.type = 'pawn'
                 piece.move_to(original_pos)
                 self.pieces = original_pieces.copy()
 
-                # Альфа-бета отсечение
                 if color == 'white':
                     if evaluation > best_value:
                         best_value = evaluation
@@ -1456,9 +1496,49 @@ class ChessBoard:
 
         return best_move, best_value
 
+    def _move_priority(self, piece, move):
+        """Вспомогательная функция для оценки приоритета хода"""
+        priority = 0
+        target = self.get_piece_at(move)
+
+        # Приоритет взятия фигур
+        if target:
+            priority += self.piece_values[target.type] * 15
+
+        # Высокий приоритет для развития пешек
+        if piece.type == 'pawn':
+            # Приоритет превращения
+            if (piece.color == 'white' and move[1] == 0) or (piece.color == 'black' and move[1] == 7):
+                priority += 1000
+
+            # Приоритет движения к центру
+            if 2 <= move[0] <= 5:
+                priority += 100
+
+            # Приоритет продвижения вперед
+            if piece.color == 'white':
+                priority += (7 - move[1]) * 20
+            else:
+                priority += move[1] * 20
+
+        # Приоритет центра доски
+        if 2 <= move[0] <= 5 and 2 <= move[1] <= 5:
+            priority += 80
+
+        # Приоритет ходов, создающих угрозу королю
+        for enemy in self.pieces.values():
+            if enemy.color != piece.color and enemy.type == 'king':
+                dist = abs(enemy.position[0] - move[0]) + abs(enemy.position[1] - move[1])
+                if dist <= 2:
+                    priority += 200
+                elif dist <= 4:
+                    priority += 100
+
+        return priority
 
     def get_best_promotion(self, piece, move):
         return 'queen'
+
 
 def main():
     global play_against_pc, current_turn, player_color
@@ -1472,7 +1552,7 @@ def main():
         if (play_against_pc and current_turn != player_color and
                 not board.game_over and current_time - last_move_time >= move_delay):
 
-            best_move, _ = board.get_best_move(3, current_turn)  # Уменьшена глубина поиска
+            best_move, _ = board.get_best_move(2, current_turn)  # Увеличена глубина поиска
 
             if best_move:
                 piece, move = best_move
@@ -1488,7 +1568,6 @@ def main():
                     board.board_offset_y + move[1] * tile_size + tile_size // 2
                 ))
 
-                # Превращение пешки
                 if piece.type == 'pawn' and (move[1] == 0 or move[1] == 7):
                     piece.type = 'queen'
 
@@ -1499,6 +1578,7 @@ def main():
         board.draw(screen)
         pygame.display.flip()
         clock.tick(60)
+
 
 if __name__ == "__main__":
     main()
