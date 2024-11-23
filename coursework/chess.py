@@ -19,6 +19,9 @@ font = pygame.font.Font(None, 36)
 background = pygame.image.load("assets/background.jpg")
 background = pygame.transform.scale(background, (screen_width, screen_height))
 
+# Load sound
+move_sound = pygame.mixer.Sound("assets/soundChess.mp3")
+move_sound.set_volume(0.5)  # Устанавливаем громкость звука на 50%
 
 def load_images():
     pieces = {}
@@ -28,7 +31,6 @@ def load_images():
             pieces[f"{color}_{piece}"] = pygame.transform.scale(image, (tile_size, tile_size))
             pieces[f"{color}_{piece}_small"] = pygame.transform.scale(image, (tile_size // 2, tile_size // 2))
     return pieces
-
 
 # Шахматная доска
 board_color_1 = (235, 235, 208)
@@ -44,7 +46,6 @@ is_authenticated = False
 play_against_pc = False
 player_color = "white"
 current_user = None
-
 
 class Button:
     def __init__(self, x, y, width, height, text, color=None):
@@ -79,7 +80,6 @@ class Button:
             if self.is_hovered:
                 return True
         return False
-
 
 class Piece:
     def __init__(self, color, type, position):
@@ -777,6 +777,7 @@ class ChessBoard:
                 start_pos = selected_piece.position
                 captured = clicked_piece is not None
                 selected_piece.move_to(clicked_pos)
+
                 if clicked_piece:
                     captured_key = None
                     for k, v in self.pieces.items():
@@ -813,6 +814,9 @@ class ChessBoard:
                 current_turn = next_color
                 selected_piece = None
                 self.valid_moves = []
+                # Воспроизводим звук после перемещения фигуры
+                move_sound.play()
+
                 # Сохраняем текущее состояние
                 pieces_backup = self.pieces.copy()
                 captured_backup = self.captured_pieces.copy()
