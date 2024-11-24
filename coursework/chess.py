@@ -356,7 +356,7 @@ class ChessBoard:
                                         self.board_offset_y + move[1] * tile_size + tile_size // 2),
                                        10)
 
-        # Отрисовка координат и полоски вокруг доски
+        # Отрисовка координат и полоски вокруг д��ски
         for i in range(8):
             # Цифры слева
             pygame.draw.rect(screen, (26, 7, 4),
@@ -848,9 +848,6 @@ class ChessBoard:
                         if isinstance(piece, Piece):  # Проверяем что piece это объект Piece
                             self.handle_click((self.board_offset_x + piece.position[0] * tile_size + tile_size // 2,
                                                self.board_offset_y + piece.position[1] * tile_size + tile_size // 2))
-                            pygame.time.wait(100)
-                            self.handle_click((self.board_offset_x + move[0] * tile_size + tile_size // 2,
-                                               self.board_offset_y + move[1] * tile_size + tile_size // 2))
             else:
                 self.show_message("Некорректный ход!")
                 selected_piece = None
@@ -1172,12 +1169,12 @@ class ChessBoard:
                     if active_input == "username":
                         if event.key == pygame.K_BACKSPACE:
                             username_input = username_input[:-1]
-                        elif event.key not in [pygame.K_ESCAPE, pygame.K_TAB, pygame.K_DELETE, pygame.K_SPACE]:
+                        elif event.key not in [pygame.K_ESCAPE, pygame.K_TAB, pygame.K_DELETE, pygame.K_SPACE] and len(username_input) < 16:
                             username_input += event.unicode
                     elif active_input == "password":
                         if event.key == pygame.K_BACKSPACE:
                             password_input = password_input[:-1]
-                        elif event.key not in [pygame.K_ESCAPE, pygame.K_TAB, pygame.K_DELETE, pygame.K_SPACE]:
+                        elif event.key not in [pygame.K_ESCAPE, pygame.K_TAB, pygame.K_DELETE, pygame.K_SPACE] and len(password_input) < 16:
                             password_input += event.unicode
 
     def show_register_menu(self):
@@ -1276,12 +1273,12 @@ class ChessBoard:
                     if active_input == "username":
                         if event.key == pygame.K_BACKSPACE:
                             username_input = username_input[:-1]
-                        elif event.key not in [pygame.K_ESCAPE, pygame.K_TAB, pygame.K_DELETE, pygame.K_SPACE]:
+                        elif event.key not in [pygame.K_ESCAPE, pygame.K_TAB, pygame.K_DELETE, pygame.K_SPACE] and len(username_input) < 16:
                             username_input += event.unicode
                     elif active_input == "password":
                         if event.key == pygame.K_BACKSPACE:
                             password_input = password_input[:-1]
-                        elif event.key not in [pygame.K_ESCAPE, pygame.K_TAB, pygame.K_DELETE, pygame.K_SPACE]:
+                        elif event.key not in [pygame.K_ESCAPE, pygame.K_TAB, pygame.K_DELETE, pygame.K_SPACE] and len(password_input) < 16:
                             password_input += event.unicode
 
     def authenticate(self, username, password):
