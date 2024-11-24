@@ -334,14 +334,29 @@ class ChessBoard:
                                              self.board_offset_y + row * tile_size,
                                              tile_size, tile_size))
 
-        # Отрисовка возможных ходов
-        for move in self.valid_moves:
-            pygame.draw.circle(screen, highlight_color,
-                               (self.board_offset_x + move[0] * tile_size + tile_size // 2,
-                                self.board_offset_y + move[1] * tile_size + tile_size // 2),
-                               10)
+        # Отрисовка фигур
+        for piece in self.pieces.values():
+            piece.draw(screen)
 
-            # Отрисовка координат и полоски вокруг доски
+        # Отрисовка возможных ходов и взятий для выбранной фигуры
+        if selected_piece:
+            valid_moves = self.get_valid_moves(selected_piece)
+            for move in valid_moves:
+                target_piece = self.get_piece_at(move)
+                if target_piece and target_piece.color != selected_piece.color:
+                    # Отрисовка оранжевого кружка для взятий
+                    pygame.draw.circle(screen, (255, 165, 0),  # Оранжевый цвет
+                                       (self.board_offset_x + move[0] * tile_size + tile_size // 2,
+                                        self.board_offset_y + move[1] * tile_size + tile_size // 2),
+                                       10)
+                else:
+                    # Отрисовка зеленого кружка для обычных ходов
+                    pygame.draw.circle(screen, highlight_color,
+                                       (self.board_offset_x + move[0] * tile_size + tile_size // 2,
+                                        self.board_offset_y + move[1] * tile_size + tile_size // 2),
+                                       10)
+
+        # Отрисовка координат и полоски вокруг доски
         for i in range(8):
             # Цифры слева
             pygame.draw.rect(screen, (26, 7, 4),
@@ -362,10 +377,6 @@ class ChessBoard:
 
             pygame.draw.rect(screen, (26, 7, 4),
                              (self.board_offset_x + 8 * tile_size, self.board_offset_y - 30, 30, 8 * tile_size + 60))
-
-        # Отрисовка фигур
-        for piece in self.pieces.values():
-            piece.draw(screen)
 
         # Отрисовка сообщений
         if self.message and self.message_timer > 0:
@@ -910,7 +921,7 @@ class ChessBoard:
             "2. Кликните на клетку, куда хотите переместить фигуру",
             "3. Используйте кнопки слева для управления игрой",
             "4. История ходов отображается справа",
-            "5. Съеденные фигуры отображаются сбоку от доски",
+            "5. Съед��нные фигуры ��тображаются сбоку от доски",
             "6. При мате или пате игра завершается с соответствующим сообщением",
             " ",
             "Нажмите любую клавишу, чтобы продолжить...",
@@ -1250,7 +1261,7 @@ class ChessBoard:
                             message = "Никнейм должен содержать минимум 5 символов!"
                             message_timer = 180
                         elif len(password_input) < 5:
-                            message = "Пароль должен содержать минимум 5 символов!"
+                            message = "Пароль должен содержать м��нимум 5 символов!"
                             message_timer = 180
                         elif self.is_username_taken(username_input):
                             message = "Данный пользователь уже зарегистрирован"
@@ -1378,7 +1389,7 @@ class ChessBoard:
             # Улучшенное развитие пешек
             if piece.type == 'pawn':
                 if piece.color == 'white':
-                    value += (7 - piece.position[1]) * 5  # Увеличен бонус за продвижение
+                    value += (7 - piece.position[1]) * 5  # Ув��личен бонус за продвижение
                     if 2 <= piece.position[0] <= 5:
                         value += 10  # Увеличен бонус за центральные пешки
                     for other_pawn in [p for p in self.pieces.values() if
@@ -1443,8 +1454,11 @@ class ChessBoard:
 
         for piece in pieces:
             valid_moves = self.get_valid_moves(piece)
+            # Добавляем приоритет продвижению пешек
             valid_moves = sorted(valid_moves,
-                                 key=lambda m: self._move_priority(piece, m),
+                                 key=lambda m: self._move_priority(piece, m) + (100 if piece.type == 'pawn' and
+                                                                                 ((piece.color == 'white' and m[1] == 0) or
+                                                                                  (piece.color == 'black' and m[1] == 7)) else 0),
                                  reverse=True)
 
             for move in valid_moves:
@@ -1544,7 +1558,7 @@ def main():
     global play_against_pc, current_turn, player_color
     board = ChessBoard()
     last_move_time = 0
-    move_delay = 500  # Задержка между ходами бота в миллисекундах
+    move_delay = 200  # Уменьшена задержка между ходами бота в миллисекундах
 
     while True:
         current_time = pygame.time.get_ticks()
