@@ -356,7 +356,7 @@ class ChessBoard:
                                         self.board_offset_y + move[1] * tile_size + tile_size // 2),
                                        10)
 
-        # Отрисовка координат и полоски вокруг д��ски
+        # Отрисовка координат и полоски вокруг д����ски
         for i in range(8):
             # Цифры слева
             pygame.draw.rect(screen, (26, 7, 4),
@@ -603,7 +603,7 @@ class ChessBoard:
         if save_number < 9:
             self.show_message(f"Игра сохранена как {filename}!")
         else:
-            self.show_message(f"Сохранено в {filename} Дальнейшие сохранения будут в save1.json. Очистите память")
+            self.show_message(f"Сохранено в {filename} Дальнейш��е сохранения будут в save1.json. Очистите память")
 
     def load_game(self):
         user_save_dir = os.path.join('saves', current_user)
@@ -918,7 +918,7 @@ class ChessBoard:
             "2. Кликните на клетку, куда хотите переместить фигуру",
             "3. Используйте кнопки слева для управления игрой",
             "4. История ходов отображается справа",
-            "5. Съед��нные фигуры ��тображаются сбоку от доски",
+            "5. Съеденнные фигуры отображаются сбоку от доски",
             "6. При мате или пате игра завершается с соответствующим сообщением",
             " ",
             "Нажмите любую клавишу, чтобы продолжить...",
@@ -1336,12 +1336,12 @@ class ChessBoard:
 
     def evaluate_board(self):
         piece_values = {
-            'king': 1000,
-            'queen': 90,
-            'rook': 60,
-            'bishop': 30,
-            'knight': 30,
-            'pawn': 45  # Увеличена базовая ценность пешек
+            'king': 10000,  # Король: увеличен, чтобы бот всегда придавал приоритет защите короля.
+            'queen': 90,  # Ферзь: остается наиболее ценной фигурой после короля.
+            'rook': 50,  # Ладья: немного снижено, чтобы учитывать меньшую мобильность в начале игры.
+            'bishop': 35,  # Слон: немного выше коня за счет дальнобойности.
+            'knight': 32,  # Конь: чуть ниже слона, но высоко ценится за способность перепрыгивать фигуры.
+            'pawn': 10  # Пешка: снижена, чтобы бот меньше концентрировался на материальном преимуществе пешек.
         }
 
         score = 0
@@ -1416,7 +1416,7 @@ class ChessBoard:
         return score
 
     def get_best_move(self, depth, color, alpha=float('-inf'), beta=float('inf')):
-        if depth == 0:
+        if depth == 0 or self.game_over:
             return None, self.evaluate_board()
 
         best_move = None
@@ -1425,16 +1425,27 @@ class ChessBoard:
         else:
             best_value = float('inf')
 
-        self.piece_values = {
-            'king': 1000,
-            'queen': 90,
-            'rook': 60,
-            'bishop': 30,
-            'knight': 30,
-            'pawn': 45  # Увеличена базовая ценность пешек
-        }
-
         pieces = [p for p in self.pieces.values() if p.color == color]
+
+        # Проверка на одинокого короля
+        if len(pieces) == 1 and pieces[0].type == 'king':
+            king = pieces[0]
+            valid_moves = self.get_valid_moves(king)
+            if not valid_moves:
+                return None, float('-inf') if color == 'white' else float('inf')
+
+            # Выбираем любой возможный ход для короля
+            best_move = (king, valid_moves[0])
+            return best_move, 0
+
+        self.piece_values = {
+            'king': 10000,  # Король: увеличен, чтобы бот всегда придавал приоритет защите короля.
+            'queen': 90,  # Ферзь: остается наиболее ценной фигурой после короля.
+            'rook': 50,  # Ладья: немного снижено, чтобы учитывать меньшую мобильность в начале игры.
+            'bishop': 35,  # Слон: немного выше коня за счет дальнобойности.
+            'knight': 32,  # Конь: чуть ниже слона, но высоко ценится за способность перепрыгивать фигуры.
+            'pawn': 10  # Пешка: снижена, чтобы бот меньше концентрировался на материальном преимуществе пешек.
+        }
 
         # Приоритизация пешек в начале игры
         pawns = [p for p in pieces if p.type == 'pawn']
@@ -1555,7 +1566,7 @@ def main():
     global play_against_pc, current_turn, player_color
     board = ChessBoard()
     last_move_time = 0
-    move_delay = 200  # Уменьшена задержка между ходами бота в миллисекундах
+    move_delay = 200
 
     while True:
         current_time = pygame.time.get_ticks()
@@ -1563,7 +1574,7 @@ def main():
         if (play_against_pc and current_turn != player_color and
                 not board.game_over and current_time - last_move_time >= move_delay):
 
-            best_move, _ = board.get_best_move(2, current_turn)  # Увеличена глубина поиска
+            best_move, _ = board.get_best_move(3, current_turn)
 
             if best_move:
                 piece, move = best_move
@@ -1589,7 +1600,6 @@ def main():
         board.draw(screen)
         pygame.display.flip()
         clock.tick(60)
-
 
 if __name__ == "__main__":
     main()
