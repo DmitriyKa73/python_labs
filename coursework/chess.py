@@ -603,7 +603,7 @@ class ChessBoard:
         if save_number < 9:
             self.show_message(f"Игра сохранена как {filename}!")
         else:
-            self.show_message(f"Сохранено в {filename} Дальнейш��е сохранения будут в save1.json. Очистите память")
+            self.show_message(f"Сохранено в {filename} Дальнейшие сохранения будут в save1.json. Очистите память")
 
     def load_game(self):
         user_save_dir = os.path.join('saves', current_user)
@@ -1258,7 +1258,7 @@ class ChessBoard:
                             message = "Никнейм должен содержать минимум 5 символов!"
                             message_timer = 180
                         elif len(password_input) < 5:
-                            message = "Пароль должен содержать м��нимум 5 символов!"
+                            message = "Пароль должен содержать минимум 5 символов!"
                             message_timer = 180
                         elif self.is_username_taken(username_input):
                             message = "Данный пользователь уже зарегистрирован"
