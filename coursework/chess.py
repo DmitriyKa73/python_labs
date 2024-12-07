@@ -4,7 +4,7 @@ import json
 import os
 import random
 import hashlib
-import re
+import textwrap
 
 pygame.init()
 info = pygame.display.Info()
@@ -21,8 +21,7 @@ background = pygame.transform.scale(background, (screen_width, screen_height))
 
 # Load sound
 move_sound = pygame.mixer.Sound("assets/soundChess.mp3")
-move_sound.set_volume(0.5)  # Устанавливаем громкость звука на 50%
-
+move_sound.set_volume(0.5)  \
 
 def load_images():
     pieces = {}
@@ -33,8 +32,6 @@ def load_images():
             pieces[f"{color}_{piece}_small"] = pygame.transform.scale(image, (tile_size // 2, tile_size // 2))
     return pieces
 
-
-# Шахматная доска
 board_color_1 = (235, 235, 208)
 board_color_2 = (92, 86, 83)
 highlight_color = (186, 202, 68)
@@ -48,7 +45,6 @@ is_authenticated = False
 play_against_pc = False
 player_color = "white"
 current_user = None
-
 
 class Button:
     def __init__(self, x, y, width, height, text, color=None):
@@ -64,7 +60,7 @@ class Button:
         else:
             color = button_hover_color if self.is_hovered else button_color
         if self.disabled:
-            color = (169, 169, 169)  # Серый цвет для неактивной кнопки
+            color = (169, 169, 169)
         pygame.draw.rect(screen, color, self.rect, border_radius=10)
         pygame.draw.rect(screen, (50, 50, 50), self.rect, 2, border_radius=10)
 
@@ -84,7 +80,6 @@ class Button:
                 return True
         return False
 
-
 class Piece:
     def __init__(self, color, type, position):
         self.color = color
@@ -103,7 +98,6 @@ class Piece:
         self.position = new_position
         self.has_moved = True
 
-
 class ChessBoard:
     def __init__(self):
         self.pieces = {}
@@ -116,16 +110,23 @@ class ChessBoard:
         self.valid_moves = []  # список для хранения возможных ходов
         self.captured_pieces = []  # список для хранения съеденных фигур
         self.game_over = False  # переменная для отслеживания конца игры
+        self.piece_values = {
+            'king': 10000,
+            'queen': 90,
+            'rook': 50,
+            'bishop': 35,
+            'knight': 32,
+            'pawn': 10
+        }
+        self.transposition_table = {}
 
-        # кнопки
         button_width = 200
         button_height = 50
         container_width = 300
         button_x = self.board_offset_x - container_width - 50 + (container_width - button_width) // 2
         button_spacing = 20
 
-        # Вычисляем начальную позицию для центрирования кнопок по вертикали
-        container_height = 700  # Высота контейнера
+        container_height = 700
         total_buttons_height = (button_height + button_spacing) * 6 - button_spacing
         start_y = (container_height - total_buttons_height) // 2 + 200
 
@@ -143,7 +144,6 @@ class ChessBoard:
             'exit': Button(button_x, start_y + (button_height + button_spacing) * 5, button_width, button_height,
                            "Выход из игры")
         }
-
     def setup_pieces(self, piece_set, color):
         pieces = {}
         positions = [(x, y) for x in range(8) for y in range(8)]
@@ -152,7 +152,7 @@ class ChessBoard:
         def get_random_position():
             while positions:
                 pos = positions.pop()
-                if pos[1] not in [0, 7]:  # Исключаем крайние верхние и нижние клетки для пешек
+                if pos[1] not in [0, 7]:  # условие для исключения крайних верхних и нижних клеток для пешек
                     return pos
             return None
 
@@ -196,14 +196,12 @@ class ChessBoard:
                         "white_queen": Piece("white", "queen", positions.pop())
                     }
 
-        # Создаем фигуры и проверяем на шах
         while True:
             positions = [(x, y) for x in range(8) for y in range(8)]
             random.shuffle(positions)
             pieces = create_pieces()
             self.pieces = pieces
 
-            # Проверяем, нет ли шаха для обоих королей
             if not self.is_check("white") and not self.is_check("black"):
                 break
 
@@ -224,7 +222,6 @@ class ChessBoard:
         x1, y1 = start_pos
         x2, y2 = end_pos
 
-        # Определяем направление движения
         dx = 0 if x2 == x1 else (x2 - x1) // abs(x2 - x1)
         dy = 0 if y2 == y1 else (y2 - y1) // abs(y2 - y1)
 
@@ -266,7 +263,6 @@ class ChessBoard:
             if piece.color == color:
                 valid_moves = self.get_valid_moves(piece)
                 for move in valid_moves:
-                    # Пробуем сделать ход
                     original_pos = piece.position
                     captured_piece = self.get_piece_at(move)
                     piece.move_to(move)
@@ -279,7 +275,6 @@ class ChessBoard:
                         if captured_key:
                             del self.pieces[captured_key]
 
-                    # Проверяем, остается ли король под шахом
                     still_in_check = self.is_check(color)
 
                     piece.move_to(original_pos)
@@ -322,10 +317,8 @@ class ChessBoard:
         return True
 
     def draw(self, screen):
-        # Отрисовка фона
         screen.blit(background, (0, 0))
 
-        # Отрисовка доски
         for row in range(8):
             for col in range(8):
                 color = board_color_1 if (row + col) % 2 == 0 else board_color_2
@@ -334,37 +327,30 @@ class ChessBoard:
                                              self.board_offset_y + row * tile_size,
                                              tile_size, tile_size))
 
-        # Отрисовка фигур
         for piece in self.pieces.values():
             piece.draw(screen)
 
-        # Отрисовка возможных ходов и взятий для выбранной фигуры
         if selected_piece:
             valid_moves = self.get_valid_moves(selected_piece)
             for move in valid_moves:
                 target_piece = self.get_piece_at(move)
                 if target_piece and target_piece.color != selected_piece.color:
-                    # Отрисовка оранжевого кружка для взятий
-                    pygame.draw.circle(screen, (255, 165, 0),  # Оранжевый цвет
+                    pygame.draw.circle(screen, (255, 165, 0),
                                        (self.board_offset_x + move[0] * tile_size + tile_size // 2,
                                         self.board_offset_y + move[1] * tile_size + tile_size // 2),
                                        10)
                 else:
-                    # Отрисовка зеленого кружка для обычных ходов
                     pygame.draw.circle(screen, highlight_color,
                                        (self.board_offset_x + move[0] * tile_size + tile_size // 2,
                                         self.board_offset_y + move[1] * tile_size + tile_size // 2),
                                        10)
 
-        # Отрисовка координат и полоски вокруг д����ски
         for i in range(8):
-            # Цифры слева
             pygame.draw.rect(screen, (26, 7, 4),
                              (self.board_offset_x - 30, self.board_offset_y + i * tile_size, 30, tile_size))
             text = font.render(str(8 - i), True, (255, 255, 255))
             screen.blit(text, (self.board_offset_x - 25, self.board_offset_y + i * tile_size + tile_size // 3))
 
-            # Буквы снизу
             pygame.draw.rect(screen, (26, 7, 4),
                              (self.board_offset_x - 30 + i * tile_size, self.board_offset_y + 8 * tile_size,
                               tile_size + 30, 30))
@@ -378,20 +364,16 @@ class ChessBoard:
             pygame.draw.rect(screen, (26, 7, 4),
                              (self.board_offset_x + 8 * tile_size, self.board_offset_y - 30, 30, 8 * tile_size + 60))
 
-        # Отрисовка сообщений
         if self.message and self.message_timer > 0:
-            # полупрозрачный фон для сообщения
             message_surface = pygame.Surface((screen_width, 100), pygame.SRCALPHA)
-            message_surface.fill((0, 0, 0, 128))  # Черный цвет с прозрачностью
+            message_surface.fill((0, 0, 0, 128))
 
-            # текст сообщения с тенью
             text_shadow = font.render(self.message, True, (0, 0, 0))
             text_surface = font.render(self.message, True, (255, 255, 255))
             text_rect = text_surface.get_rect(center=(screen_width // 2, 50))
             message_surface.blit(text_shadow, (text_rect.x + 4, text_rect.y + 4))
             message_surface.blit(text_surface, text_rect)
 
-            # Отображаем сообщение на экране
             screen.blit(message_surface, (0, 0))
             self.message_timer -= 1
 
@@ -401,8 +383,6 @@ class ChessBoard:
         buttons_y = 170
         moves_x = self.board_offset_x + 8 * tile_size + 50
         moves_y = 170
-
-        # Отрисовка контейнера для кнопок
 
         pygame.draw.rect(screen, (235, 235, 208),
                          (buttons_x, buttons_y, container_width, container_height))
@@ -433,16 +413,13 @@ class ChessBoard:
         for button in self.buttons.values():
             button.draw(screen)
 
-        # Отрисовка правого контейнера
-
         pygame.draw.rect(screen, (235, 235, 208),
                          (moves_x, moves_y, container_width, container_height))
         pygame.draw.rect(screen, (26, 7, 4),
                          (moves_x, moves_y, container_width, container_height), 6)
 
-        # Отображение текущего сохранения и хода в правом контейнере
         if self.current_save:
-            save_text = font.render("Текущее сохранение:", True, (0, 0, 0))
+            save_text = font.render("Текущее сохра��ение:", True, (0, 0, 0))
             screen.blit(save_text, (moves_x + 10, moves_y + 10))
             save_name = font.render(f"{self.current_save}", True, (0, 0, 0))
             screen.blit(save_name, (moves_x + 10, moves_y + 40))
@@ -463,11 +440,10 @@ class ChessBoard:
             turn_text = font.render("Конец игры!", True, (0, 0, 0))
             screen.blit(turn_text, (moves_x + 10, moves_y + 80))
 
-        # Отрисовка истории ходов
         history_text = font.render("История ходов:", True, (0, 0, 0))
         screen.blit(history_text, (moves_x + 10, moves_y + 120))
 
-        visible_moves = 11  # Количество видимых ходов
+        visible_moves = 11
         start_index = max(0, len(self.moves_history) - visible_moves)
 
         for i, move in enumerate(self.moves_history[start_index:]):
@@ -475,7 +451,6 @@ class ChessBoard:
             move_text = font.render(f"{move_number}. {move}", True, (0, 0, 0))
             screen.blit(move_text, (moves_x + 10, moves_y + 160 + i * 30))
 
-        # Отрисовка съеденных фигур
         small_piece_size = tile_size // 2
         captured_x = moves_x + 10
         captured_y = moves_y + container_height - small_piece_size * 2 - 20
@@ -483,26 +458,25 @@ class ChessBoard:
         captured_text = font.render("Съеденные фигуры:", True, (0, 0, 0))
         screen.blit(captured_text, (captured_x, captured_y - 30))
 
-        # Разделяем съеденные фигуры по цветам
         white_captured = [p for p in self.captured_pieces if p.color == "white"]
         black_captured = [p for p in self.captured_pieces if p.color == "black"]
 
         for i, piece in enumerate(black_captured):
-            if i < 8:  # Максимум 8 фигур в ряду
+            if i < 8:
                 x = captured_x + i * small_piece_size
                 y = captured_y
                 small_image = pieces[f"{piece.color}_{piece.type}_small"]
                 screen.blit(small_image, (x, y))
 
         for i, piece in enumerate(white_captured):
-            if i < 8:  # Максимум 8 фигур в ряду
+            if i < 8:
                 x = captured_x + i * small_piece_size
                 y = captured_y + small_piece_size
                 small_image = pieces[f"{piece.color}_{piece.type}_small"]
                 screen.blit(small_image, (x, y))
 
     def promote_pawn(self, pawn):
-        # Создаем поверхность для меню выбора фигуры
+        # Создание поверхности для меню выбора фигуры
         menu_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
         for i in range(screen_height):
             alpha = min(128, i // 16)
@@ -593,9 +567,9 @@ class ChessBoard:
             'pieces': [(p.color, p.type, p.position) for p in self.pieces.values()],
             'moves_history': self.moves_history,
             'current_turn': current_turn,
-            'captured_pieces': [(p.color, p.type) for p in self.captured_pieces],  # Сохраняем съеденные фигуры
-            'play_against_pc': play_against_pc,  # Сохраняем режим игры против ПК
-            'player_color': player_color  # Сохраняем цвет игрока
+            'captured_pieces': [(p.color, p.type) for p in self.captured_pieces],
+            'play_against_pc': play_against_pc,
+            'player_color': player_color
         }
         with open(filename, 'w') as f:
             json.dump(game_state, f)
@@ -806,7 +780,7 @@ class ChessBoard:
                         del self.pieces[captured_key]
                         self.captured_pieces.append(clicked_piece)
 
-                # Автоматическое превращение пешки ПК в ферзя
+                # Автоматическое превращение пешки бота в ферзя
                 if selected_piece.type == "pawn":
                     if (selected_piece.color == "white" and clicked_pos[1] == 0) or \
                             (selected_piece.color == "black" and clicked_pos[1] == 7):
@@ -817,7 +791,6 @@ class ChessBoard:
                             self.promote_pawn(selected_piece)
 
                 self.add_move_to_history(selected_piece, start_pos, clicked_pos, captured)
-                # Проверяем шах, мат или пат
                 next_color = "black" if current_turn == "white" else "white"
                 if self.is_check(next_color):
                     if self.is_checkmate(next_color):
@@ -832,20 +805,16 @@ class ChessBoard:
                 current_turn = next_color
                 selected_piece = None
                 self.valid_moves = []
-                # Воспроизводим звук после перемещения фигуры
                 move_sound.play()
 
-                # Сохраняем текущее состояние
                 pieces_backup = self.pieces.copy()
                 captured_backup = self.captured_pieces.copy()
 
-                # Делаем ход
-                # Если играем против ПК, делаем ход за ПК
                 if play_against_pc and current_turn != player_color and not self.game_over:
                     best_move = self.get_best_move(2, current_turn)
                     if best_move and isinstance(best_move, tuple) and len(best_move) == 2:
                         piece, move = best_move
-                        if isinstance(piece, Piece):  # Проверяем что piece это объект Piece
+                        if isinstance(piece, Piece):
                             self.handle_click((self.board_offset_x + piece.position[0] * tile_size + tile_size // 2,
                                                self.board_offset_y + piece.position[1] * tile_size + tile_size // 2))
             else:
@@ -912,17 +881,13 @@ class ChessBoard:
 
     def show_instructions(self):
         instructions = [
-            "ИНСТРУКЦИЯ ПО ИГРЕ ШАХМАТНЫЙ ЭНДШПИЛЬ:",
-            " ",
-            "1. Кликните на фигуру, чтобы выбрать ее",
-            "2. Кликните на клетку, куда хотите переместить фигуру",
-            "3. Используйте кнопки слева для управления игрой",
-            "4. История ходов отображается справа",
-            "5. Съеденнные фигуры отображаются сбоку от доски",
-            "6. При мате или пате игра завершается с соответствующим сообщением",
-            " ",
-            "Нажмите любую клавишу, чтобы продолжить...",
-            "gamedev Dmitriy Kazarov, 2024"
+            ("", "assets/first_page.jpg"),
+            ("", "assets/second_page.jpg"),
+            ("", "assets/third_page.jpg"),
+            ("", "assets/fourth_page.jpg"),
+            ("", "assets/fifth_page.jpg"),
+            ("", "assets/sixth_page.jpg"),
+            ("", "assets/seventh_page.jpg"),
         ]
 
         instruction_surface = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
@@ -931,23 +896,59 @@ class ChessBoard:
             pygame.draw.line(instruction_surface, (70, 130, 180, alpha), (0, i), (screen_width, i))
 
         container_width = 900
-        container_height = 500
+        container_height = screen_height - 100
         container_rect = pygame.Rect((screen_width - container_width) // 2,
-                                     (screen_height - container_height) // 2,
-                                     container_width, container_height)
+                                    50,
+                                    container_width, container_height)
 
+        current_index = 0
         showing_instructions = True
         while showing_instructions:
-            screen.blit(background, (0, 0))  # Отрисовка фона
+            screen.blit(background, (0, 0))
             screen.blit(instruction_surface, (0, 0))
 
-            pygame.draw.rect(screen, (235, 235, 208), container_rect)
+            pygame.draw.rect(screen, (236,233,218), container_rect)
             pygame.draw.rect(screen, (26, 7, 4), container_rect, 6)
 
-            for i, line in enumerate(instructions):
-                text = font.render(line, True, (0, 0, 0))
-                screen.blit(text, (container_rect.centerx - text.get_width() // 2,
-                                   container_rect.top + 40 + i * 40))
+            title_font = pygame.font.Font(None, 52)
+            title_text = title_font.render("Инструкция к игре", True, (0, 0, 0))
+            title_rect = title_text.get_rect(center=(container_rect.centerx, container_rect.top + 40))
+            screen.blit(title_text, title_rect)
+
+            text, image_path = instructions[current_index]
+
+            wrapped_text = textwrap.fill(text, width=70)  # 70 - количество символов в строке
+
+            if image_path:
+                image = pygame.image.load(image_path).convert_alpha()
+                image_width = container_width - 40  # Отступы по 20 пикселей с каждой стороны в инструкции
+                image_height = int(image.get_height() * (image_width / image.get_width()))
+                image = pygame.transform.scale(image, (image_width, image_height))
+                screen.blit(image, (container_rect.left + 20, container_rect.top + 100))
+                text_y_position = container_rect.top + 120 + image_height
+            else:
+                text_y_position = container_rect.top + 100
+
+            for i, line in enumerate(wrapped_text.split('\n')):
+                text_surface = font.render(line, True, (0, 0, 0))
+                screen.blit(text_surface, (container_rect.left + 20, text_y_position + i * 30))
+
+            # Пагинация
+            page_text = f"{current_index + 1}/{len(instructions)}"
+            page_surface = font.render(page_text, True, (0, 0, 0))
+            page_rect = page_surface.get_rect(center=(container_rect.centerx, container_rect.bottom - 30))
+            screen.blit(page_surface, page_rect)
+
+            # Отрисовка кнопок навигации
+            left_button = pygame.Rect(container_rect.left + 20, container_rect.bottom - 60, 50, 40)
+            right_button = pygame.Rect(container_rect.right - 70, container_rect.bottom - 60, 50, 40)
+            pygame.draw.rect(screen, (70, 130, 180), left_button)
+            pygame.draw.rect(screen, (70, 130, 180), right_button)
+
+            left_text = font.render("<", True, (255, 255, 255))
+            right_text = font.render(">", True, (255, 255, 255))
+            screen.blit(left_text, left_button.move(15, 5))
+            screen.blit(right_text, right_button.move(15, 5))
 
             pygame.display.flip()
 
@@ -955,8 +956,18 @@ class ChessBoard:
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
-                elif event.type in (pygame.KEYDOWN, pygame.MOUSEBUTTONDOWN):
-                    showing_instructions = False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if left_button.collidepoint(event.pos):
+                        current_index = (current_index - 1) % len(instructions)
+                    elif right_button.collidepoint(event.pos):
+                        current_index = (current_index + 1) % len(instructions)
+                elif event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_LEFT:
+                        current_index = (current_index - 1) % len(instructions)
+                    elif event.key == pygame.K_RIGHT:
+                        current_index = (current_index + 1) % len(instructions)
+                    elif event.key == pygame.K_ESCAPE:
+                        showing_instructions = False
 
     def show_new_game_menu(self):
         global current_turn, play_against_pc, player_color
@@ -1054,21 +1065,21 @@ class ChessBoard:
                         selecting = False
 
         if start_new_game:
-            self.clear_board()  # Очищаем доску перед началом новой игры
+            self.clear_board()
             if selected_options["Набор фигур:"] == 0:
                 self.pieces = self.setup_pieces("king_queen",
                                                 "white" if selected_options["Сторона:"] == 0 else "black")
             else:
                 self.pieces = self.setup_pieces("king_rook_pawns",
                                                 "white" if selected_options["Сторона:"] == 0 else "black")
-            self.moves_history = []  # Стираем историю ходов
-            self.current_save = None  # Удаляем текущее сохранение
-            self.captured_pieces = []  # Удаляем съеденные фигуры
-            self.game_over = False  # Сбрасываем состояние конца игры
-            current_turn = "white"  # Сбрасываем ход
-            global play_against_pc  # Делаем переменную глобальной
-            play_against_pc = selected_options["Противник:"] == 1  # Устанавливаем режим игры против ПК
-            player_color = "white" if selected_options["Сторона:"] == 0 else "black"  # Устанавливаем цвет игрока
+            self.moves_history = []
+            self.current_save = None
+            self.captured_pieces = []
+            self.game_over = False
+            current_turn = "white"
+            global play_against_pc
+            play_against_pc = selected_options["Противник:"] == 1
+            player_color = "white" if selected_options["Сторона:"] == 0 else "black"
 
     def show_login_menu(self):
         global is_authenticated, current_user
@@ -1255,7 +1266,7 @@ class ChessBoard:
                         active_input = "password"
                     elif register_button.rect.collidepoint(event.pos):
                         if len(username_input) < 5:
-                            message = "Никнейм должен содержать минимум 5 символов!"
+                            message = "Никнейм должен содержать минимум 5 символ��в!"
                             message_timer = 180
                         elif len(password_input) < 5:
                             message = "Пароль должен содержать минимум 5 символов!"
@@ -1335,64 +1346,50 @@ class ChessBoard:
             self.message_timer -= 1
 
     def evaluate_board(self):
-        piece_values = {
-            'king': 10000,  # Король: увеличен, чтобы бот всегда придавал приоритет защите короля.
-            'queen': 90,  # Ферзь: остается наиболее ценной фигурой после короля.
-            'rook': 50,  # Ладья: немного снижено, чтобы учитывать меньшую мобильность в начале игры.
-            'bishop': 35,  # Слон: немного выше коня за счет дальнобойности.
-            'knight': 32,  # Конь: чуть ниже слона, но высоко ценится за способность перепрыгивать фигуры.
-            'pawn': 10  # Пешка: снижена, чтобы бот меньше концентрировался на материальном преимуществе пешек.
-        }
-
         score = 0
 
-        # Подсчет пешек
         white_pawns = len([p for p in self.pieces.values() if p.type == 'pawn' and p.color == 'white'])
         black_pawns = len([p for p in self.pieces.values() if p.type == 'pawn' and p.color == 'black'])
 
         for piece in list(self.pieces.values()):
-            value = piece_values[piece.type]
+            value = self.piece_values[piece.type]
 
             # Приоритет развития пешек в начале игры
             if piece.type == 'pawn':
                 if (white_pawns > 0 and piece.color == 'white') or (black_pawns > 0 and piece.color == 'black'):
-                    value *= 2  # Удвоенная ценность пешек
+                    value *= 2  # ценность пешек
 
-                    # Бонус за продвижение к центру в начале игры
                     if 2 <= piece.position[0] <= 5:
                         if piece.color == 'white' and piece.position[1] > 4:
                             value *= 1.5
                         elif piece.color == 'black' and piece.position[1] < 3:
                             value *= 1.5
 
-            # Оценка позиции для мата
             if piece.type != 'king':
                 for enemy in list(self.pieces.values()):
                     if enemy.color != piece.color and enemy.type == 'king':
                         dist = abs(enemy.position[0] - piece.position[0]) + abs(enemy.position[1] - piece.position[1])
                         if dist <= 2:
-                            value *= 3.0  # Увеличен множитель за близость к королю
+                            value *= 3.0
                         elif dist <= 4:
-                            value *= 1.5  # Бонус за фигуры в средней близости к королю
+                            value *= 1.5
 
-            # Защита своего короля
             if piece.type == 'king':
                 protectors = sum(1 for p in self.pieces.values()
                                  if p.color == piece.color and p != piece
                                  and abs(p.position[0] - piece.position[0]) + abs(
                     p.position[1] - piece.position[1]) <= 1)
-                value *= (1 + 0.2 * protectors)  # Увеличен бонус за защиту
+                value *= (1 + 0.2 * protectors)
 
-            # Улучшенное развитие пешек
             if piece.type == 'pawn':
                 if piece.color == 'white':
-                    value += (7 - piece.position[1]) * 5  # Ув��личен бонус за продвижение
+                    value += (7 - piece.position[1]) * 5
                     if 2 <= piece.position[0] <= 5:
-                        value += 10  # Увеличен бонус за центральные пешки
+                        value += 10
                     for other_pawn in [p for p in self.pieces.values() if
                                        p.type == 'pawn' and p.color == 'white' and p != piece]:
                         if piece.position[0] == other_pawn.position[0]:
-                            value -= 10  # Увеличен штраф за сдвоенные пешки
+                            value -= 10
                 else:
                     value += piece.position[1] * 5
                     if 2 <= piece.position[0] <= 5:
@@ -1407,7 +1404,6 @@ class ChessBoard:
             else:
                 score -= value
 
-        # Дополнительный бонус за мат
         if self.is_checkmate('black'):
             score += 10000
         elif self.is_checkmate('white'):
@@ -1415,7 +1411,7 @@ class ChessBoard:
 
         return score
 
-    def get_best_move(self, depth, color, alpha=float('-inf'), beta=float('inf')):
+    def get_best_move(self, depth, color, alpha=float('-inf'), beta=float('inf'), use_transposition=True):
         if depth == 0 or self.game_over:
             return None, self.evaluate_board()
 
@@ -1425,49 +1421,18 @@ class ChessBoard:
         else:
             best_value = float('inf')
 
+        if use_transposition:
+            board_hash = self.hash_board()
+            if board_hash in self.transposition_table:
+                return self.transposition_table[board_hash]
+
         pieces = [p for p in self.pieces.values() if p.color == color]
 
-        # Проверка на одинокого короля
-        if len(pieces) == 1 and pieces[0].type == 'king':
-            king = pieces[0]
-            valid_moves = self.get_valid_moves(king)
-            if not valid_moves:
-                return None, float('-inf') if color == 'white' else float('inf')
-
-            # Выбираем любой возможный ход для короля
-            best_move = (king, valid_moves[0])
-            return best_move, 0
-
-        self.piece_values = {
-            'king': 10000,  # Король: увеличен, чтобы бот всегда придавал приоритет защите короля.
-            'queen': 90,  # Ферзь: остается наиболее ценной фигурой после короля.
-            'rook': 50,  # Ладья: немного снижено, чтобы учитывать меньшую мобильность в начале игры.
-            'bishop': 35,  # Слон: немного выше коня за счет дальнобойности.
-            'knight': 32,  # Конь: чуть ниже слона, но высоко ценится за способность перепрыгивать фигуры.
-            'pawn': 10  # Пешка: снижена, чтобы бот меньше концентрировался на материальном преимуществе пешек.
-        }
-
-        # Приоритизация пешек в начале игры
-        pawns = [p for p in pieces if p.type == 'pawn']
-        other_pieces = [p for p in pieces if p.type != 'pawn']
-
-        if len(pawns) > 0:  # Если есть пешки
-            pieces = pawns + other_pieces  # Сначала рассматриваем ходы пешками
-
-        # Сортировка фигур по важности
-        pieces.sort(key=lambda p: (self.piece_values[p.type] +
-                                   (30 if p.type == 'pawn' and ((p.color == 'white' and p.position[1] <= 1) or
-                                                                (p.color == 'black' and p.position[1] >= 6)) else 0)),
-                    reverse=True)
+        pieces.sort(key=lambda p: self._move_priority(p, p.position), reverse=True)
 
         for piece in pieces:
             valid_moves = self.get_valid_moves(piece)
-            # Добавляем приоритет продвижению пешек
-            valid_moves = sorted(valid_moves,
-                                 key=lambda m: self._move_priority(piece, m) + (100 if piece.type == 'pawn' and
-                                                                                 ((piece.color == 'white' and m[1] == 0) or
-                                                                                  (piece.color == 'black' and m[1] == 7)) else 0),
-                                 reverse=True)
+            valid_moves.sort(key=lambda m: self._move_priority(piece, m), reverse=True)
 
             for move in valid_moves:
                 target_piece = self.get_piece_at(move)
@@ -1491,11 +1456,7 @@ class ChessBoard:
                         piece.type = 'queen'
                         was_promoted = True
 
-                # Увеличиваем глубину для важных ходов
-                if self.is_check(color) or target_piece or was_promoted:
-                    _, evaluation = self.get_best_move(depth + 1, 'black' if color == 'white' else 'white', alpha, beta)
-                else:
-                    _, evaluation = self.get_best_move(depth - 1, 'black' if color == 'white' else 'white', alpha, beta)
+                _, evaluation = self.get_best_move(depth - 1, 'black' if color == 'white' else 'white', alpha, beta, use_transposition)
 
                 if was_promoted:
                     piece.type = 'pawn'
@@ -1516,38 +1477,36 @@ class ChessBoard:
                 if beta <= alpha:
                     break
 
+        if use_transposition:
+            self.transposition_table[board_hash] = (best_move, best_value)
+
         return best_move, best_value
 
+    def hash_board(self):
+        return hash(tuple((p.color, p.type, p.position) for p in self.pieces.values()))
+
     def _move_priority(self, piece, move):
-        """Вспомогательная функция для оценки приоритета хода"""
         priority = 0
         target = self.get_piece_at(move)
 
-        # Приоритет взятия фигур
         if target:
             priority += self.piece_values[target.type] * 15
 
-        # Высокий приоритет для развития пешек
         if piece.type == 'pawn':
-            # Приоритет превращения
             if (piece.color == 'white' and move[1] == 0) or (piece.color == 'black' and move[1] == 7):
                 priority += 1000
 
-            # Приоритет движения к центру
             if 2 <= move[0] <= 5:
                 priority += 100
 
-            # Приоритет продвижения вперед
             if piece.color == 'white':
                 priority += (7 - move[1]) * 20
             else:
                 priority += move[1] * 20
 
-        # Приоритет центра доски
         if 2 <= move[0] <= 5 and 2 <= move[1] <= 5:
             priority += 80
 
-        # Приоритет ходов, создающих угрозу королю
         for enemy in self.pieces.values():
             if enemy.color != piece.color and enemy.type == 'king':
                 dist = abs(enemy.position[0] - move[0]) + abs(enemy.position[1] - move[1])
@@ -1574,7 +1533,7 @@ def main():
         if (play_against_pc and current_turn != player_color and
                 not board.game_over and current_time - last_move_time >= move_delay):
 
-            best_move, _ = board.get_best_move(3, current_turn)
+            best_move, _ = board.get_best_move(2, current_turn)
 
             if best_move:
                 piece, move = best_move
