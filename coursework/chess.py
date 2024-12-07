@@ -21,7 +21,7 @@ background = pygame.transform.scale(background, (screen_width, screen_height))
 
 # Load sound
 move_sound = pygame.mixer.Sound("assets/soundChess.mp3")
-move_sound.set_volume(0.5)  \
+move_sound.set_volume(0.5)  
 
 def load_images():
     pieces = {}
