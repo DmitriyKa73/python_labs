@@ -419,7 +419,7 @@ class ChessBoard:
                          (moves_x, moves_y, container_width, container_height), 6)
 
         if self.current_save:
-            save_text = font.render("Текущее сохра��ение:", True, (0, 0, 0))
+            save_text = font.render("Текущее сохранение:", True, (0, 0, 0))
             screen.blit(save_text, (moves_x + 10, moves_y + 10))
             save_name = font.render(f"{self.current_save}", True, (0, 0, 0))
             screen.blit(save_name, (moves_x + 10, moves_y + 40))
@@ -939,16 +939,25 @@ class ChessBoard:
             page_rect = page_surface.get_rect(center=(container_rect.centerx, container_rect.bottom - 30))
             screen.blit(page_surface, page_rect)
 
-            # Отрисовка кнопок навигации
             left_button = pygame.Rect(container_rect.left + 20, container_rect.bottom - 60, 50, 40)
             right_button = pygame.Rect(container_rect.right - 70, container_rect.bottom - 60, 50, 40)
             pygame.draw.rect(screen, (70, 130, 180), left_button)
             pygame.draw.rect(screen, (70, 130, 180), right_button)
 
-            left_text = font.render("<", True, (255, 255, 255))
-            right_text = font.render(">", True, (255, 255, 255))
+            left_text = font.render("<-", True, (255, 255, 255))
+            right_text = font.render("->", True, (255, 255, 255))
             screen.blit(left_text, left_button.move(15, 5))
             screen.blit(right_text, right_button.move(15, 5))
+
+            close_button_size = 40
+            close_button_rect = pygame.Rect(container_rect.right - close_button_size - 10,
+                                            container_rect.top + 10,
+                                            close_button_size,
+                                            close_button_size)
+
+            pygame.draw.rect(screen, (255, 50, 20), close_button_rect)
+            close_text = font.render("X", True, (255, 255, 255))
+            screen.blit(close_text, close_button_rect.move(10, 5))
 
             pygame.display.flip()
 
@@ -961,6 +970,8 @@ class ChessBoard:
                         current_index = (current_index - 1) % len(instructions)
                     elif right_button.collidepoint(event.pos):
                         current_index = (current_index + 1) % len(instructions)
+                    elif close_button_rect.collidepoint(event.pos):
+                        showing_instructions = False
                 elif event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
                         current_index = (current_index - 1) % len(instructions)
@@ -1266,7 +1277,7 @@ class ChessBoard:
                         active_input = "password"
                     elif register_button.rect.collidepoint(event.pos):
                         if len(username_input) < 5:
-                            message = "Никнейм должен содержать минимум 5 символ��в!"
+                            message = "Никнейм должен содержать минимум 5 символов!"
                             message_timer = 180
                         elif len(password_input) < 5:
                             message = "Пароль должен содержать минимум 5 символов!"
